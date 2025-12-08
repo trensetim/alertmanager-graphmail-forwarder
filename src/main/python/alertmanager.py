@@ -1,0 +1,131 @@
+"""Data Structures for Alertmanager webhook payloads."""
+
+import enum
+from datetime import datetime
+from dataclasses import dataclass
+import collections
+from typing import Any
+
+class Deduplicator:
+    """Deduplicator for Alertmanager notifications."""
+
+    sent_notifications_dedup_cache: collections.deque[str]
+    """Cache the groupKeys of received notifications to avoid sending duplicates."""
+
+    def __init__(self, maxlen: int = 100):
+        self.sent_notifications_dedup_cache = collections.deque(maxlen=maxlen)
+
+    def is_present(self, group_key: str) -> bool:
+        """Check if the given group_key has already been seen."""
+        if group_key in self.sent_notifications_dedup_cache:
+            return True
+        return False
+
+    def add(self, group_key: str):
+        """Add the given group_key to the deduplication cache."""
+        self.sent_notifications_dedup_cache.append(group_key)
+
+class Status(enum.Enum):
+    """Notification Status"""
+    FIRING = "firing"
+    RESOLVED = "resolved"
+
+
+@dataclass
+class Alert:
+    """An individual alert."""
+
+    generator_url: str
+    """identifies the entity that caused the alert"""
+
+    fingerprint: str
+    """fingerprint to identify the alert"""
+
+    starts_at: datetime
+    """when the alert started"""
+
+    ends_at: datetime | None
+    """when the alert ended"""
+
+    def __init__(self,
+                 status: Status,
+                 labels: dict[str, str],
+                 annotations: dict[str, str],
+                 starts_at: datetime,
+                 ends_at: datetime | None,
+                 generator_url: str,
+                 fingerprint: str):
+        self.status = status
+        self.labels = labels
+        self.annotations = annotations
+        self.starts_at = starts_at
+        self.ends_at = ends_at
+        self.generator_url = generator_url
+        self.fingerprint = fingerprint
+
+@dataclass
+# pylint: disable=R0902 # too few public methods -> dataclass
+class Notification:
+    """https://prometheus.io/docs/alerting/latest/configuration/#webhook_config"""
+
+    version: int
+    """4"""
+
+    group_key: str
+    """key identifying the group of alerts (e.g. to deduplicate)"""
+
+    external_url: str
+    """backlink to the Alertmanager"""
+
+    # pylint: disable=R0913 R0917 # too many arguments -> dataclass
+    def __init__(self,
+                 version: int,
+                 group_key: str,
+                 status: Status,
+                 receiver: str,
+                 group_labels: dict[str, str],
+                 common_labels: dict[str, str],
+                 common_annotations: dict[str, str],
+                 external_url: str,
+                 alerts: list[Alert]):
+        self.version = version
+        self.group_key = group_key
+        self.status = status
+        self.receiver = receiver
+        self.group_labels = group_labels
+        self.common_labels = common_labels
+        self.common_annotations = common_annotations
+        self.external_url = external_url
+        self.alerts = alerts
+
+    @staticmethod
+    def parse(data: dict[str, Any]) -> "Notification":
+        """Create Notification from dictionary."""
+
+        if data["version"] != "4":
+            raise ValueError("Unsupported Alertmanager version")
+
+        alerts = [
+            Alert(
+                status=Status(alert_data["status"]),
+                labels=alert_data["labels"],
+                annotations=alert_data["annotations"],
+                starts_at=datetime.fromisoformat(alert_data["startsAt"].replace("Z", "+00:00")),
+                ends_at=datetime.fromisoformat(alert_data["endsAt"].replace("Z", "+00:00")),
+                generator_url=alert_data["generatorURL"],
+                fingerprint=alert_data["fingerprint"]
+            )
+            for alert_data in data.get("alerts", [])
+        ]
+
+        return Notification(
+            version=int(data["version"]),
+            group_key=data["groupKey"],
+            status=Status(data["status"]),
+            receiver=data["receiver"],
+            group_labels=data.get("groupLabels", {}),
+            common_labels=data.get("commonLabels", {}),
+            common_annotations=data.get("commonAnnotations", {}),
+            external_url=data["externalURL"],
+            alerts=alerts
+        )

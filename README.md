@@ -18,3 +18,10 @@ flowchart LR
 
 %% Sources and Licenses are stated in the object declarations.
 ```
+
+## Contributing
+
+To get started, initialize a python venv by
+  - `python -m venv .`
+  - `. bin/activate`
+  - `pip install -r src/build/python/requirements.txt`
