@@ -10,8 +10,6 @@ from alertmanager import Notification, Deduplicator
 from template import render_mail_body, render_mail_subject
 from config import Configuration
 
-flask = Flask(__name__)
-
 config: Configuration
 try:
     config = Configuration()
@@ -29,6 +27,8 @@ MAIL_SENDER = GraphMailSender.default(
 )
 DEDUPLICATOR = Deduplicator()
 
+flask = Flask(__name__)
+
 @flask.get("/health")
 def health_check() -> Response:
     """Health check endpoint."""
@@ -36,7 +36,10 @@ def health_check() -> Response:
 
 
 @flask.post("/alert")
-@static_bearer_auth(token=config.auth_token or "", allow_anonymous=config.no_auth)
+@static_bearer_auth(
+    token=config.server.auth_token or "",
+    allow_anonymous=config.server.is_auth_enabled() is False
+)
 def on_webhook() -> Response:
     """Handle incoming Alertmanager webhook and send email via Microsoft Graph API."""
 
@@ -65,7 +68,14 @@ def on_webhook() -> Response:
 
     return Response(status=200)
 
-
 if __name__ == "__main__":
-    flask.run(host=config.listen_address, port=config.listen_port)
+    flask.run(
+        host=config.server.listen_address,
+        port=config.server.listen_port,
+        ssl_context=(
+            (config.server.tls.cert_path, config.server.tls.key_path)
+            if config.server.tls is not None
+            else None
+        ),
+    )
     # run in prod configuration: gunicorn -k gthread -b 0.0.0.0:8000 main:flask
