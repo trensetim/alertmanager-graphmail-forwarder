@@ -10,6 +10,8 @@ ENV_VAR_TENANT_ID = "TENANT_ID"
 ENV_VAR_FROM_ADDRESS = "FROM"
 ENV_VAR_TO_ADDRESSES = "TO"
 ENV_VAR_HTTP_TIMEOUT_SECONDS = "HTTP_TIMEOUT_SECONDS"
+ENV_VAR_LISTEN_ADDRESS = "LISTEN_ADDRESS"
+ENV_VAR_LISTEN_PORT = "LISTEN_PORT"
 ENV_VAR_AUTH_TOKEN = "AUTH_TOKEN"
 
 BASE_EMAIL_LIST_REGEX = r'(([A-Za-z0-9\-\._~\+]+@[A-Za-z0-9\-\._~\+]+\.[A-Za-z]{2,}),?)+'
@@ -33,8 +35,14 @@ class Configuration:
     """Recipient email addresses for outgoing emails."""
     http_timeout_seconds: float
     """HTTP timeout for requests to Microsoft Graph API."""
-    auth_token: str
+    listen_address: str
+    """HTTP server listen address for incoming requests."""
+    listen_port: int
+    """HTTP server listen port for incoming requests."""
+    auth_token: str | None
     """Bearer token for static authentication."""
+    no_auth: bool
+    """Whether to disable authentication (for testing purposes)."""
 
     def __init__(self):
         client_id: str = os.getenv(ENV_VAR_CLIENT_ID, "")
@@ -43,6 +51,8 @@ class Configuration:
         from_address: str = os.getenv(ENV_VAR_FROM_ADDRESS, "")
         to_addresses_raw: str = os.getenv(ENV_VAR_TO_ADDRESSES, "")
         http_timeout_seconds_str: str = os.getenv(ENV_VAR_HTTP_TIMEOUT_SECONDS, "10.0")
+        listen_address: str = os.getenv(ENV_VAR_LISTEN_ADDRESS, "0.0.0.0")
+        listen_port_str: str = os.getenv(ENV_VAR_LISTEN_PORT, "8080")
         auth_token: str = os.getenv(ENV_VAR_AUTH_TOKEN, "")
 
         if client_id == "":
@@ -65,8 +75,20 @@ class Configuration:
         if (
             http_timeout_seconds_str == ""
             or not re.fullmatch(r'^[0-9]+(\.[0-9]+)?$', http_timeout_seconds_str)
+            or float(http_timeout_seconds_str) <= 0.0
+            # 10m exceeds reasonable TCP timeout thus user likely misinterpreted it as millis
+            or float(http_timeout_seconds_str) > 600.0
         ):
             raise ValueError(f"{ENV_VAR_HTTP_TIMEOUT_SECONDS} invalid")
+        if listen_address == "":
+            raise ValueError(f"{ENV_VAR_LISTEN_ADDRESS} not configured")
+        if (
+            listen_port_str == ""
+            or not re.fullmatch(r'^[0-9]+$', listen_port_str)
+            or int(listen_port_str) < 1
+            or int(listen_port_str) >= 65535
+        ):
+            raise ValueError(f"{ENV_VAR_LISTEN_PORT} invalid")
         if (
             auth_token == ""
             or not re.fullmatch(r'^[A-Za-z0-9\-\._~\+/]+=*$', auth_token)
@@ -84,7 +106,10 @@ class Configuration:
         self.from_address = from_address
         self.to_addresses = to_addresses_raw.split(',')
         self.http_timeout_seconds = float(http_timeout_seconds_str)
-        self.auth_token = auth_token
+        self.listen_address = listen_address
+        self.listen_port = int(listen_port_str)
+        self.no_auth = auth_token == "DISABLED"
+        self.auth_token = auth_token if not self.no_auth else None
 
 def _coalesce_file(secret: str, hint: str) -> str:
     """

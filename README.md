@@ -25,3 +25,45 @@ To get started, initialize a python venv by
   - `python -m venv .`
   - `. bin/activate`
   - `pip install -r src/build/python/requirements.txt`
+
+## Configuration
+
+The application is configured via environment variables.
+
+| Variable       | Description           |
+|----------------|-----------------------|
+| FROM           | Sender E-Mail Address |
+| TO             | Recipient E-Mail Address List (comma-separated, no spaces) |
+| CLIENT_ID      | OAuth2 EntraID client id of this application's registration |
+| CLIENT_SECRET  | OAuth2 EntraID client secret of this application's registration |
+| TENANT_ID      | UUID of the EntraID tenant of the organization hosting the Exchange Mail Server |
+| AUTH_TOKEN     | Secret for the HTTP Authorization Bearer header, according to [RFC6750](https://datatracker.ietf.org/doc/html/rfc6750) |
+| LISTEN_ADDRESS | [default = 0.0.0.0] Bind to local address |
+| LISTEN_PORT    | [default = 8080] Bind to local tcp port (for serving the http webhook receiver) |
+| HTTP_TIMEOUT_SECONDS | default=10 Used during access to MS Graph API |
+
+For the sensitive values (`CLIENT_ID`, `CLIENT_SECRET`, `TENANT_ID`, `AUTH_TOKEN`), if they start with a literal `/` (forward-slash), the value is interpreted as a filesystem path and the actual secret value is read from that file.
+The file content will get whitespace-trimmed and UTF-8 decoded.
+
+## Getting Started
+
+For running locally, do
+
+```bash
+PORT="8080"
+CLIENT_SECRET="$(dd if=/dev/random bs=4K count=1 2>/dev/null | sha256sum | head -c 32)"
+CLIENT_SECRET_PATH="/etc/prometheus-alertmanager-forwarder/client_secret"
+echo -n "$CLIENT_SECRET" > client_secret
+TENANT_ID="$(uuidgen -r)"
+
+docker run --rm -it -p $PORT:$PORT \
+    -e "HTTP_PORT=$PORT" \
+    -e "TO=someone@example.com,another@example.com" \
+    -e "FROM=prometheus@example.com" \
+    -e "CLIENT_ID=prometheus" \
+    -e "TENANT_ID=$TENANT_ID" \
+    -e "CLIENT_SECRET=$CLIENT_SECRET_PATH" \
+    -v "$(pwd)/client_secret:${CLIENT_SECRET_PATH}:ro" \
+    -e "AUTH_TOKEN=DISABLED" \
+    docker-registry.timtrense.com/tim/alertmanager-graphmail-forwarder:latest
+```

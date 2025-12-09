@@ -1,6 +1,6 @@
 """Web API for converting Alertmanager webhooks into Microsoft Graph emails."""
 
-import os
+import sys
 from typing import Any
 from flask import Flask, request, Response
 
@@ -12,14 +12,20 @@ from config import Configuration
 
 flask = Flask(__name__)
 
-CONFIGURATION = Configuration()
+config: Configuration
+try:
+    config = Configuration()
+except ValueError as e:
+    print(f"Configuration error: {e}")
+    sys.exit(1)
+
 MAIL_SENDER = GraphMailSender.default(
-    client_id=CONFIGURATION.client_id,
-    client_secret=CONFIGURATION.client_secret,
-    tenant_id=CONFIGURATION.tenant_id,
-    from_address=CONFIGURATION.from_address,
-    default_to_address=CONFIGURATION.to_addresses,
-    timeout_seconds=CONFIGURATION.http_timeout_seconds,
+    client_id=config.client_id,
+    client_secret=config.client_secret,
+    tenant_id=config.tenant_id,
+    from_address=config.from_address,
+    default_to_address=config.to_addresses,
+    timeout_seconds=config.http_timeout_seconds,
 )
 DEDUPLICATOR = Deduplicator()
 
@@ -30,7 +36,7 @@ def health_check() -> Response:
 
 
 @flask.post("/alert")
-@static_bearer_auth(token=os.getenv("AUTH_TOKEN", ""))
+@static_bearer_auth(token=config.auth_token or "", allow_anonymous=config.no_auth)
 def on_webhook() -> Response:
     """Handle incoming Alertmanager webhook and send email via Microsoft Graph API."""
 
@@ -61,5 +67,5 @@ def on_webhook() -> Response:
 
 
 if __name__ == "__main__":
-    flask.run(host="0.0.0.0", port=int(os.getenv("PORT", "8000")))
+    flask.run(host=config.listen_address, port=config.listen_port)
     # run in prod configuration: gunicorn -k gthread -b 0.0.0.0:8000 main:flask
