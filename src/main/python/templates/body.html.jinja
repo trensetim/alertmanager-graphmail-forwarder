@@ -1,0 +1,71 @@
+<html>
+<body>
+    <style>
+        h2 {
+            color: {{ 'red' if status == 'FIRING' else 'green' }};
+        }
+    </style>
+    <h2>{{ status }}: {{ alertname }}</h2>
+
+    <table>
+    <tbody>
+    <tr>
+        <td>Summary</td>
+        <td>{{ summary }}</td>
+    </tr>
+    <tr>
+        <td>Description</td>
+        <td>{{ description }}</td>
+    </tr>
+    <tr>
+        <td>Starts At</td>
+        <td>{{ starts_at }}</td>
+    </tr>
+    <tr>
+        <td>Ends At</td>
+        <td>{{ ends_at }}</td>
+    </tr>
+    <tr>
+        <td>Fingerprint</td>
+        <td>{{ fingerprint }}</td>
+    </tr>
+    <tr>
+        <td>Labels</td>
+        <td>
+            <ul>
+            {% for label in labels %}
+                <li>
+                    <b>
+                        {{ label }}
+                    </b>
+                    =
+                    {{ labels[label] }}
+                </li>
+            {% endfor %}
+            </ul>
+        </td>
+    </tr>
+    <tr>
+        <td>Annotations</td>
+        <td>
+            <ul>
+
+            {% for a in annotations %}
+                <li>
+                    <b>
+                        {{ a }}
+                    </b>
+                    =
+                    {{ annotations[a] }}
+                </li>
+            {% endfor %}
+            </ul>
+        </td>
+    </tr>
+    </tbody>
+    </table>
+
+    <hr/>
+    <a href="{{ external_url }}">View in Alertmanager</a>
+</body>
+</html>

@@ -46,6 +46,14 @@ The application is configured via environment variables.
 For the sensitive values (`CLIENT_ID`, `CLIENT_SECRET`, `TENANT_ID`, `AUTH_TOKEN`), if they start with a literal `/` (forward-slash), the value is interpreted as a filesystem path and the actual secret value is read from that file.
 The file content will get whitespace-trimmed and UTF-8 decoded.
 
+## Changing the email
+
+The body and subject of the mails are generated from [Jinja](https://jinja.palletsprojects.com/) templates.
+To change those, mount custom templates at `/app/templates/body.html.jinja` or `/app/templates/subject.txt.jinja`.
+You can [see here](src/main/python/template.py) the variables that are available.
+
+Bear in mind to keep the HTML of your mails simple, since many mail clients cannot render abritrary HTML correctly, and there are significant rendering differences between clients.
+
 ## Getting Started
 
 For running locally, do

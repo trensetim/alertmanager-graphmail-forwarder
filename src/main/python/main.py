@@ -7,7 +7,7 @@ from flask import Flask, request, Response
 from http_server import static_bearer_auth
 from graph_mail import GraphMailSender
 from alertmanager import Notification, Deduplicator
-from template import render_mail_body, render_mail_subject
+from template import TemplateRenderer
 from config import Configuration
 
 config: Configuration
@@ -17,6 +17,7 @@ except ValueError as e:
     print(f"Configuration error: {e}")
     sys.exit(1)
 
+RENDERER = TemplateRenderer()
 MAIL_SENDER = GraphMailSender.default(
     client_id=config.client_id,
     client_secret=config.client_secret,
@@ -57,8 +58,8 @@ def on_webhook() -> Response:
 
     for i in range(len(notification.alerts)):
         MAIL_SENDER.send(
-            subject=render_mail_subject(notification, alert_index=i),
-            body=render_mail_body(notification, alert_index=i)
+            subject=RENDERER.render_mail_subject(notification, alert_index=i),
+            body=RENDERER.render_mail_body(notification, alert_index=i)
             # to=<use default>
         )
 
