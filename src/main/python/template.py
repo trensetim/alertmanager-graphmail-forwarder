@@ -41,7 +41,10 @@ class TemplateRenderer:
             "summary": alert.annotations.get("summary", "[no summary]"),
             "description": alert.annotations.get("description", "[no description]"),
             "starts_at": alert.starts_at.isoformat(),
-            "ends_at": alert.ends_at.isoformat() if alert.ends_at else "[no end time]",
+            "ends_at":
+                alert.ends_at.isoformat()
+                if alert.ends_at is not None and alert.ends_at.timestamp() > 1
+                else "ongoing",
             "fingerprint": alert.fingerprint,
             "labels": labels,
             "annotations": annotations
