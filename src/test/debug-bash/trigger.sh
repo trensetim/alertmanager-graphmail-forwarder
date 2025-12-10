@@ -17,7 +17,8 @@ curl -X POST -v -H "Content-Type: application/json" -d '{
       },
       "annotations": {
         "description": "some description",
-        "abc": "def"
+        "abc": "def",
+        "summary": "test alert"
       },
       "startsAt": "2018-08-03T09:52:26.739266876+02:00",
       "endsAt": "0001-01-01T00:00:00Z",
@@ -40,4 +41,6 @@ curl -X POST -v -H "Content-Type: application/json" -d '{
   "externalURL": "http://example.com:9093",
   "version": "4",
   "groupKey": "group1"
-}' -H "Authorization: Bearer $AUTH_TOKEN" http://localhost:8000/alert
+}' \
+    -H "Authorization: Bearer $AUTH_TOKEN" \
+    "http://localhost:$PORT/alert"
