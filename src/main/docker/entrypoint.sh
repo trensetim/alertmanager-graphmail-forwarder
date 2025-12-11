@@ -20,7 +20,7 @@ else
     TLS_CLIARGS=""
 fi
 
-gunicorn \
+exec gunicorn \
     -k gthread \
     -b $LISTEN_ADDRESS:$LISTEN_PORT \
     $TLS_CLIARGS \
