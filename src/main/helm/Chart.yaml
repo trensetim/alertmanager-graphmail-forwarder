@@ -4,6 +4,7 @@ description: A background service that listens to Alertmanager webhooks and forw
 type: application
 version: 0.0.1
 appVersion: 0.0.1
+icon: https://upload.wikimedia.org/wikipedia/commons/e/ea/Microsoft_Exchange_%282019-present%29.svg
 home: &home https://gitlab.timtrense.com/tim/alertmanager-graphmail-forwarder
 annotations:
   org.opencontainers.image.source: *home
