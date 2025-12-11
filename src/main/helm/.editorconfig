@@ -1,0 +1,7 @@
+# https://EditorConfig.org
+
+# helm...
+[*.yaml]
+indent_size = 2
+[*.tpl]
+indent_size = 2

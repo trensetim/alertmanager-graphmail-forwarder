@@ -1,0 +1,9 @@
+apiVersion: v2
+name: alertmanager-graphmail-forwarder
+description: A background service that listens to Alertmanager webhooks and forwards alert emails via Microsoft Graph API SendMail.
+type: application
+version: 0.0.1
+appVersion: 0.0.1
+home: &home https://gitlab.timtrense.com/tim/alertmanager-graphmail-forwarder
+annotations:
+  org.opencontainers.image.source: *home

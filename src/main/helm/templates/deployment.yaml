@@ -1,0 +1,133 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name:
+    {{- " " -}}
+    {{- if .Values.deployment.nameOverride -}}
+      {{ .Values.deployment.nameOverride }}
+    {{- else -}}
+      {{- include "name" . -}}
+    {{- end -}}
+
+  {{- "" }}
+  labels:
+    {{- toYaml (merge (default dict .Values.deployment.labels) (default dict .Values.labels)) | nindent 4 }}
+
+  {{- $annotations := merge (default dict .Values.deployment.annotations) (default dict .Values.annotations) }}
+  {{- if $annotations }}
+  annotations:
+    {{- toYaml $annotations | nindent 4 }}
+  {{- end -}}
+
+{{- "" }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- if .Values.deployment.selectorLabels -}}
+        {{- toYaml .Values.deployment.selectorLabels | nindent 6 -}}
+      {{- else -}}
+        {{- $labels := merge (default dict .Values.pod.labels) (default dict .Values.labels) }}
+        {{- toYaml $labels | nindent 6 -}}
+      {{- end -}}
+
+  {{- "" }}
+  template:
+    metadata:
+      labels:
+        {{- toYaml (merge (default dict .Values.pod.labels) (default dict .Values.labels)) | nindent 8 }}
+      {{- $annotations := merge (default dict .Values.pod.annotations) (default dict .Values.annotations) }}
+      {{- if $annotations }}
+      annotations:
+        {{- toYaml $annotations | nindent 8 }}
+      {{- end -}}
+
+    {{- "" }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+          {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: app
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.service.port }}
+              protocol: TCP
+          livenessProbe:
+            {{- include "healthcheck" . | nindent 12 }}
+          readinessProbe:
+            {{- include "healthcheck" . | nindent 12 }}
+          startupProbe:
+            {{- include "healthcheck" . | nindent 12 }}
+          resources:
+            {{- toYaml .Values.pod.resources | nindent 12 }}
+
+          {{- with .Values.pod.env }}
+          env:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+
+          {{- if or .Values.config.enabled .Values.pod.envFrom }}
+          envFrom:
+            {{- if .Values.config.enabled }}
+            - secretRef:
+                name: {{- " " -}}
+                  {{- if .Values.config.nameOverride -}}
+                  {{ .Values.config.nameOverride }}
+                  {{- else -}}
+                  {{ include "name" . }}
+                  {{- end -}}
+            {{- end }}
+            {{- with .Values.pod.envFrom }}
+              {{- toYaml . | nindent 12 }}
+            {{- end }}
+          {{- end }}
+
+          {{- "" }}
+          volumeMounts:
+            - # gunicorn needs a writable /tmp, but by default, the container fs is read-only
+              name: tmp
+              mountPath: /tmp
+            {{- "" }}
+            {{- with .Values.pod.volumeMounts }}
+              {{- toYaml . | nindent 12 }}
+            {{- end -}}
+
+          {{- "" }}
+          securityContext:
+            {{- toYaml .Values.pod.containerSecurityContext | nindent 12 }}
+
+        {{- with .Values.pod.additionalContainers -}}
+        {{- "" }}
+        {{- toYaml . | nindent 8 -}}
+        {{- end -}}
+
+
+
+      {{- "" }}
+      securityContext:
+        {{- toYaml .Values.pod.securityContext | nindent 8 }}
+
+      {{- with .Values.pod.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.pod.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.pod.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+
+      {{- "" }}
+      volumes:
+        - name: tmp
+          emptyDir: {}
+        {{- with .Values.pod.volumes }}
+          {{- toYaml . | nindent 8 }}
+        {{- end }}

@@ -1,0 +1,32 @@
+{{- if .Values.service.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name:
+    {{- " " -}}
+    {{- if .Values.service.nameOverride -}}
+      {{ .Values.service.nameOverride }}
+    {{- else -}}
+      {{- include "name" . -}}
+    {{- end -}}
+
+  {{- "" }}
+  labels:
+    {{- toYaml (merge (default dict .Values.service.labels) (default dict .Values.labels)) | nindent 4 }}
+
+{{- "" }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - port: {{ .Values.service.port }}
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    {{- if .Values.service.selectorLabels -}}
+      {{- toYaml .Values.service.selectorLabels | nindent 6 -}}
+    {{- else -}}
+      {{- $labels := merge (default dict .Values.pod.labels) (default dict .Values.labels) }}
+      {{- toYaml $labels | nindent 6 -}}
+    {{- end }}
+{{- end }}

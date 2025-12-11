@@ -1,0 +1,85 @@
+nameOverride: null # uses the release name if not set
+
+image:
+  repository: docker-registry.timtrense.com/tim/alertmanager-graphmail-forwarder
+  pullPolicy: IfNotPresent
+  tag: null # default to the .Chart.AppVersion
+
+imagePullSecrets: []
+
+replicaCount: 1
+
+# base labels for all resources (null = autogenerate)
+labels:
+  app.kubernetes.io/name: alertmanager-graphmail-forwarder
+# base annotations for all resources (null = autogenerate)
+annotations: null
+
+deployment:
+  nameOverride: null
+  # additional labels for the deployment
+  labels: {}
+  # selector labels for the deployment (null = use pod.labels)
+  selectorLabels: null
+
+pod:
+  # additional labels for the pod
+  labels:
+    app.kubernetes.io/component: app
+  # additional annotations for the pod
+  annotations: {}
+  volumes: []
+  volumeMounts: []
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  env: []
+  # additional envFrom sources, if .configEnabled, otherwise the only ones
+  envFrom: []
+  containerSecurityContext:
+    capabilities:
+      drop:
+        - ALL
+    readOnlyRootFilesystem: true
+    runAsNonRoot: true
+    runAsUser: 1000
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+    fsGroup: 1000
+  additionalContainers: []
+
+  resources:
+    limits:
+      cpu: 100m
+      memory: 60Mi
+    requests:
+      cpu: 10m
+      memory: 60Mi
+
+service:
+  enabled: true
+  nameOverride: null
+  labels: {}
+  annotations: {}
+  type: ClusterIP
+  port: 8080
+  selectorLabels: null # defaults to pod.labels if not set
+
+config:
+  # whether to generate appropriate configmaps and secrets. Otherwise,
+  # pod.env, pod.envFrom, pod.volumes and pod.volumeMounts must be used together
+  # with preexisting configmaps/secrets to provide configuration.
+  enabled: true
+  nameOverride: null
+  labels: {}
+  annotations: {}
+  # the actual application configuration, as plain values
+  values:
+    to: ["recipient@example.com"] # required
+    from: "sender@example.com" # required
+    clientId: "your-client-id" # required
+    tenantId: "your-tenant-id" # required
+    clientSecret: "your-client-secret" # required
+    authToken: "authorization-bearer-token" # required
+  additionalValues: {}
