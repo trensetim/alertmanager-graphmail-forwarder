@@ -1,0 +1,40 @@
+{{- if and .Values.tls.enabled .Values.tls.certManager.enabled }}
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name:
+    {{- " " -}}
+    {{- if .Values.tls.certManager.certificate.nameOverride -}}
+      {{ .Values.service.nameOverride }}
+    {{- else -}}
+      {{- include "name" . -}}
+    {{- end -}}
+
+  {{- "" }}
+  labels:
+    {{- toYaml (merge (default dict .Values.tls.certManager.certificate.labels) (default dict .Values.labels)) | nindent 4 }}
+
+  {{- $annotations := merge (default dict .Values.tls.certManager.certificate.annotations) (default dict .Values.annotations) }}
+  {{- if $annotations }}
+  annotations:
+    {{- toYaml $annotations | nindent 4 }}
+  {{- end -}}
+
+{{- "" }}
+spec:
+  secretName: {{ .Values.tls.secretName | quote }}
+  issuerRef:
+    name: {{ .Values.tls.certManager.issuer.name }}
+    kind: {{ .Values.tls.certManager.issuer.kind }}
+  dnsNames:
+    - {{ include "certificateCommonName" . }}
+  {{- "" }}
+  commonName: {{ include "certificateCommonName" . }}
+  duration: {{ .Values.tls.certManager.certificate.duration }}
+
+  {{- if hasSuffix "%" .Values.tls.certManager.certificate.renewBefore }}
+  renewBeforePercentage: {{ .Values.tls.certManager.certificate.renewBefore | replace "%" "" }}
+  {{- else }}
+  renewBefore: {{ .Values.tls.certManager.certificate.renewBefore }}
+  {{- end }}
+{{- end }}

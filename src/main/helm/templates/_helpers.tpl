@@ -25,10 +25,30 @@
 {{- end -}}
 {{- end -}}
 
+{{- define "serviceName" -}}
+{{- if .Values.service.nameOverride -}}
+  {{ .Values.service.nameOverride }}
+{{- else -}}
+  {{- include "name" . -}}
+{{- end -}}
+{{- end -}}
+
+{{- define "certificateCommonName" -}}
+{{- if .Values.tls.certManager.certificate.commonNameOverride -}}
+  {{- .Values.tls.certManager.certificate.commonNameOverride -}}
+{{- else -}}
+  {{- include "serviceName" . -}}
+{{- end -}}
+{{- end -}}
+
 {{- define "healthcheck" -}}
 httpGet:
   path: /health
-  port: http
-  scheme: HTTP
+  {{- if .Values.pod.portOverride }}
+  port: {{ .Values.pod.portOverride.name }}
+  {{- else }}
+  port: {{ ternary "https" "http" .Values.tls.enabled }}
+  {{- end }}
+  scheme: {{ ternary "HTTPS" "HTTP" .Values.tls.enabled }}
 initialDelaySeconds: 1
 {{- end -}}

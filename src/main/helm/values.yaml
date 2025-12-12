@@ -33,6 +33,7 @@ pod:
   nodeSelector: {}
   tolerations: []
   affinity: {}
+  portOverride: null # {name, number} defaults to http/8080 or https/8443 depending on tls.enabled
   env: []
   # additional envFrom sources, if .configEnabled, otherwise the only ones
   envFrom: []
@@ -63,8 +64,59 @@ service:
   labels: {}
   annotations: {}
   type: ClusterIP
-  port: 8080
+  portOverride: null # {name, number} defaults to https/443 or http/80 depending on tls.enabled
   selectorLabels: null # defaults to pod.labels if not set
+
+tls:
+  # whether to mount the specified TLS secret into the pod and thus switch to HTTPS
+  # Hint: you will likely want to change the ports spec accordingly:
+  #       - pod.port.name to https
+  #       - pod.port.number to 8443
+  #       - service.port.name to https
+  #       - service.port.number to 443
+  enabled: false
+  # a type=kubernetes.io/tls secret containing the TLS tls.crt and tls.key for HTTPS
+  secretName: alertmanager-graphmail-forwarder-tls
+  certManager:
+    # if you want, this helm chart can request a TLS certificate via cert-manager
+    # the CN will be the service's DNS name within the cluster
+    enabled: false
+    issuer:
+      name: alertmanager-graphmail-forwarder-ca
+      kind: Issuer
+      # whether to deploy that issuer as well. it will be a CAIssuer with a self-signed CA certificate
+      enabled: true
+      caCertificate:
+        name: alertmanager-graphmail-forwarder-ca
+        # whether to deploy that CA secret as well
+        enabled: true
+        commonNameOverride: null
+        labels: {}
+        annotations: {}
+        duration: 876000h # 100 years
+        issuer:
+          name: alertmanager-graphmail-forwarder-selfsigned
+          kind: Issuer
+          # whether to deploy that self-signed issuer as well
+          enabled: true
+          labels: {}
+          annotations: {}
+          spec:
+            selfSigned: {}
+      labels: {}
+      annotations: {}
+
+    certificate:
+      nameOverride: null
+      labels: {}
+      annotations: {}
+      # additional dns names. The common name will always be added automatically.
+      dnsNames: []
+      # defaults to the service name (see #service.nameOverride)
+      commonNameOverride: null
+      duration: 24h
+      renewBefore: 5% # use % as a suffix if you like: see https://cert-manager.io/docs/reference/api-docs/#cert-manager.io/v1.CertificateSpec
+
 
 config:
   # whether to generate appropriate configmaps and secrets. Otherwise,

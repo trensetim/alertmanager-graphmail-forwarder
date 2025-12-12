@@ -1,0 +1,37 @@
+{{- if and
+    .Values.tls.enabled
+    .Values.tls.certManager.enabled
+    .Values.tls.certManager.issuer.enabled
+    .Values.tls.certManager.issuer.caCertificate.enabled
+}}
+{{- with .Values.tls.certManager.issuer.caCertificate }}
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: {{ .name | quote }}
+  labels:
+    {{- toYaml (merge (default dict .labels) (default dict $.Values.labels)) | nindent 4 }}
+
+  {{- $annotations := merge (default dict .annotations) (default dict $.Values.annotations) }}
+  {{- if $annotations }}
+  annotations:
+    {{- toYaml $annotations | nindent 4 }}
+  {{- end -}}
+
+{{- "" }}
+spec:
+  secretName: {{ .name | quote }}
+  isCA: true
+  commonName:
+    {{- " " -}}
+    {{- if .commonNameOverride }}
+    {{- .commonNameOverride | quote -}}
+    {{- else }}
+    {{- .name | quote -}}
+    {{- end }}
+  duration: {{ .duration | quote }}
+  issuerRef:
+    name: {{ .issuer.name | quote }}
+    kind: {{ .issuer.kind }}
+{{- end }}
+{{- end }}

@@ -53,8 +53,13 @@ spec:
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
-            - name: http
-              containerPort: {{ .Values.service.port }}
+            {{- if .Values.pod.portOverride }}
+            - name: {{ .Values.pod.portOverride.name }}
+              containerPort: {{ .Values.pod.portOverride.number }}
+            {{- else }}
+            - name: {{ ternary "https" "http" .Values.tls.enabled }}
+              containerPort: {{ ternary "8443" "8080" .Values.tls.enabled }}
+            {{- end }}
               protocol: TCP
           livenessProbe:
             {{- include "healthcheck" . | nindent 12 }}
@@ -65,10 +70,24 @@ spec:
           resources:
             {{- toYaml .Values.pod.resources | nindent 12 }}
 
-          {{- with .Values.pod.env }}
+          {{- "" }}
           env:
-            {{- toYaml . | nindent 12 }}
-          {{- end }}
+            {{- if .Values.pod.portOverride }}
+            - name: LISTEN_PORT
+              value: "{{ .Values.pod.portOverride.number }}"
+            {{- else }}
+            - name: LISTEN_PORT
+              value: "{{ ternary "8443" "8080" .Values.tls.enabled }}"
+            {{- end }}
+            {{- if .Values.tls.enabled }}
+            - name: TLS_CERT_PATH
+              value: /app/tls/tls.crt
+            - name: TLS_KEY_PATH
+              value: /app/tls/tls.key
+            {{- end }}
+            {{- if .Values.pod.env }}
+            {{- toYaml .Values.pod.env | nindent 12 }}
+            {{- end }}
 
           {{- if or .Values.config.enabled .Values.pod.envFrom }}
           envFrom:
@@ -91,9 +110,13 @@ spec:
             - # gunicorn needs a writable /tmp, but by default, the container fs is read-only
               name: tmp
               mountPath: /tmp
-            {{- "" }}
-            {{- with .Values.pod.volumeMounts }}
-              {{- toYaml . | nindent 12 }}
+            {{- if .Values.tls.enabled }}
+            - name: tls
+              mountPath: /app/tls
+              readOnly: true
+            {{- end }}
+            {{- if .Values.pod.volumeMounts }}
+              {{- toYaml .Values.pod.volumeMounts | nindent 12 }}
             {{- end -}}
 
           {{- "" }}
@@ -128,6 +151,11 @@ spec:
       volumes:
         - name: tmp
           emptyDir: {}
-        {{- with .Values.pod.volumes }}
-          {{- toYaml . | nindent 8 }}
+        {{- if .Values.tls.enabled }}
+        - name: tls
+          secret:
+            secretName: {{ .Values.tls.secretName }}
+        {{- end }}
+        {{- if .Values.pod.volumes }}
+          {{- toYaml .Values.pod.volumes | nindent 8 }}
         {{- end }}
