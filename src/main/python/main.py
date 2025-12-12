@@ -54,6 +54,7 @@ def on_webhook() -> Response:
     notification = Notification.parse(data)
 
     if DEDUPLICATOR.is_present(notification.group_key):
+        print(f"Duplicate notification received: {notification.group_key}")
         return Response("Duplicate notification", status=200, mimetype="text/plain")
 
     for i in range(len(notification.alerts)):
@@ -67,6 +68,7 @@ def on_webhook() -> Response:
     # but we accept that for simplicity
     DEDUPLICATOR.add(notification.group_key)
 
+    print(f"Notification processed: {len(notification.alerts)} alerts sent")
     return Response(status=200)
 
 if __name__ == "__main__":
