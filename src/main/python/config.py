@@ -3,6 +3,7 @@
 import os
 import re
 from dataclasses import dataclass
+import ssl
 
 ENV_VAR_CLIENT_ID = "CLIENT_ID"
 ENV_VAR_CLIENT_SECRET = "CLIENT_SECRET"
@@ -13,6 +14,8 @@ ENV_VAR_HTTP_TIMEOUT_SECONDS = "HTTP_TIMEOUT_SECONDS"
 ENV_VAR_LISTEN_ADDRESS = "LISTEN_ADDRESS"
 ENV_VAR_LISTEN_PORT = "LISTEN_PORT"
 ENV_VAR_AUTH_TOKEN = "AUTH_TOKEN"
+ENV_VAR_TLS_CERT_PATH = "TLS_CERT_PATH"
+ENV_VAR_TLS_KEY_PATH = "TLS_KEY_PATH"
 
 BASE_EMAIL_LIST_REGEX = r'(([A-Za-z0-9\-\._~\+]+@[A-Za-z0-9\-\._~\+]+\.[A-Za-z]{2,}),?)+'
 
@@ -30,6 +33,17 @@ class TlsConfiguration:
     def __init__(self, cert_path: str, key_path: str):
         self.cert_path = cert_path
         self.key_path = key_path
+
+    def load_ssl_context(self) -> ssl.SSLContext:
+        """
+        Loads an SSL context from the TLS configuration.
+        """
+        ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+        ssl_context.load_cert_chain(
+            certfile=self.cert_path,
+            keyfile=self.key_path,
+        )
+        return ssl_context
 
 @dataclass
 class HttpServerConfiguration:
@@ -95,8 +109,8 @@ class Configuration:
         listen_address: str = os.getenv(ENV_VAR_LISTEN_ADDRESS, "0.0.0.0")
         listen_port_str: str = os.getenv(ENV_VAR_LISTEN_PORT, "8080")
         auth_token: str = os.getenv(ENV_VAR_AUTH_TOKEN, "")
-        tls_cert_path: str | None = os.getenv("TLS_CERT_PATH")
-        tls_key_path: str | None = os.getenv("TLS_KEY_PATH")
+        tls_cert_path: str | None = os.getenv(ENV_VAR_TLS_CERT_PATH)
+        tls_key_path: str | None = os.getenv(ENV_VAR_TLS_KEY_PATH)
 
         if client_id == "":
             raise ValueError(f"{ENV_VAR_CLIENT_ID} not configured")
@@ -162,7 +176,10 @@ class Configuration:
             listen_port=int(listen_port_str),
             auth_token=(auth_token if auth_token != "DISABLED" else None),
             tls=(
-                TlsConfiguration(cert_path=tls_cert_path or "", key_path=tls_key_path or "")
+                TlsConfiguration(
+                    cert_path=tls_cert_path or "",
+                    key_path=tls_key_path or ""
+                )
                 if tls_enabled
                 else None
             ),

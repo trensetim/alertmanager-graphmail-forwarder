@@ -75,10 +75,6 @@ if __name__ == "__main__":
     flask.run(
         host=config.server.listen_address,
         port=config.server.listen_port,
-        ssl_context=(
-            (config.server.tls.cert_path, config.server.tls.key_path)
-            if config.server.tls is not None
-            else None
-        ),
+        ssl_context=config.server.tls.load_ssl_context() if config.server.tls else None,
     )
     # run in prod configuration: gunicorn -k gthread -b 0.0.0.0:8000 main:flask
