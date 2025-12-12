@@ -53,10 +53,10 @@ pod:
   resources:
     limits:
       cpu: 100m
-      memory: 60Mi
+      memory: 100Mi
     requests:
       cpu: 10m
-      memory: 60Mi
+      memory: 100Mi
 
 service:
   enabled: true
