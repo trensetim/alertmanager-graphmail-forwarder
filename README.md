@@ -40,7 +40,7 @@ The application is configured via environment variables.
 | AUTH_TOKEN     | Secret for the HTTP Authorization Bearer header, according to [RFC6750](https://datatracker.ietf.org/doc/html/rfc6750) |
 | LISTEN_ADDRESS | [default = 0.0.0.0] Bind to local address |
 | LISTEN_PORT    | [default = 8080] Bind to local tcp port (for serving the http webhook receiver) |
-| TLS_CERT_PATH, TLS_KEY_PATH | [default = no tls] Filesystem paths to an X509 certificate in PEM format (for serving the http webhook receiver). The container will automatically pick up on a mounted `/app/tls/crt.pem` and `/app/tls/key.pem` combination. |
+| TLS_CERT_PATH, TLS_KEY_PATH | [default = no tls] Filesystem paths to an X509 certificate in PEM format (for serving the http webhook receiver). The container will automatically pick up on a mounted `/app/tls/tls.crt` and `/app/tls/tls.key` combination. |
 | HTTP_TIMEOUT_SECONDS | default=10 Used during access to MS Graph API |
 
 For the sensitive values (`CLIENT_ID`, `CLIENT_SECRET`, `TENANT_ID`, `AUTH_TOKEN`), if they start with a literal `/` (forward-slash), the value is interpreted as a filesystem path and the actual secret value is read from that file.
@@ -66,7 +66,7 @@ echo -n "$CLIENT_SECRET" > client_secret
 TENANT_ID="$(uuidgen -r)"
 
 # for debugging with TLS. (Omit the relevant mounts for plain-http mode)
-openssl req -x509 -newkey rsa:4096 -nodes -out crt.pem -keyout key.pem -days 365
+openssl req -x509 -newkey rsa:4096 -nodes -out tls.crt -keyout tls.key -days 365
 
 docker run --rm -it -p $PORT:$PORT \
     -e "HTTP_PORT=$PORT" \
@@ -77,7 +77,7 @@ docker run --rm -it -p $PORT:$PORT \
     -e "CLIENT_SECRET=$CLIENT_SECRET_PATH" \
     -v "$(pwd)/client_secret:${CLIENT_SECRET_PATH}:ro" \
     -e "AUTH_TOKEN=DISABLED" \
-    -v "$(pwd)/crt.pem:/app/tls/crt.pem:ro" \
-    -v "$(pwd)/key.pem:/app/tls/key.pem:ro" \
+    -v "$(pwd)/tls.crt:/app/tls/tls.crt:ro" \
+    -v "$(pwd)/tls.key:/app/tls/tls.key:ro" \
     docker-registry.timtrense.com/tim/alertmanager-graphmail-forwarder:latest
 ```

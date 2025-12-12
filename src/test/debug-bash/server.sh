@@ -14,4 +14,5 @@ docker run --rm -it -p "$PORT:$PORT" \
     -e FROM="$FROM" \
     -e TO="$TO" \
     -e AUTH_TOKEN="$AUTH_TOKEN" \
+    -v $(pwd)/.local/tls:/app/tls:ro \
     "$IMAGE_NAME"

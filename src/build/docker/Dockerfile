@@ -2,7 +2,7 @@ FROM python:3-alpine
 WORKDIR /app
 COPY --chown=1000:1000 src/build/python/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt && \
-    apk add curl
+    apk add curl inotify-tools
 COPY --chown=1000:1000 src/main/python/ /app
 COPY --chown=1000:1000 src/main/docker/ /app
 STOPSIGNAL SIGTERM
