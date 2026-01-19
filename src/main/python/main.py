@@ -10,11 +10,15 @@ from alertmanager import Notification, Deduplicator
 from template import TemplateRenderer
 from config import Configuration
 
+flask = Flask(__name__)
+LOGGER = flask.logger.getChild("main")
+
 config: Configuration
 try:
     config = Configuration()
+    LOGGER.setLevel(config.log_level)
 except ValueError as e:
-    print(f"Configuration error: {e}")
+    LOGGER.error("Configuration error: %s", e)
     sys.exit(1)
 
 RENDERER = TemplateRenderer()
@@ -27,8 +31,6 @@ MAIL_SENDER = GraphMailSender.default(
     timeout_seconds=config.http_timeout_seconds,
 )
 DEDUPLICATOR = Deduplicator()
-
-flask = Flask(__name__)
 
 @flask.get("/health")
 def health_check() -> Response:
@@ -54,7 +56,7 @@ def on_webhook() -> Response:
     notification = Notification.parse(data)
 
     if DEDUPLICATOR.is_present(notification.group_key):
-        print(f"Duplicate notification received: {notification.group_key}")
+        LOGGER.warning("Duplicate notification received: %s", notification.group_key)
         return Response("Duplicate notification", status=200, mimetype="text/plain")
 
     for i in range(len(notification.alerts)):
@@ -68,7 +70,8 @@ def on_webhook() -> Response:
     # but we accept that for simplicity
     DEDUPLICATOR.add(notification.group_key)
 
-    print(f"Notification processed: {len(notification.alerts)} alerts sent")
+    LOGGER.info("Notification processed: %d alerts sent", len(notification.alerts))
+    LOGGER.debug("%s", notification)
     return Response(status=200)
 
 if __name__ == "__main__":
@@ -76,5 +79,6 @@ if __name__ == "__main__":
         host=config.server.listen_address,
         port=config.server.listen_port,
         ssl_context=config.server.tls.load_ssl_context() if config.server.tls else None,
+        debug=True
     )
     # run in prod configuration: gunicorn -k gthread -b 0.0.0.0:8000 main:flask

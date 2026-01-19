@@ -4,6 +4,7 @@ import os
 import re
 from dataclasses import dataclass
 import ssl
+import logging
 
 ENV_VAR_CLIENT_ID = "CLIENT_ID"
 ENV_VAR_CLIENT_SECRET = "CLIENT_SECRET"
@@ -16,6 +17,7 @@ ENV_VAR_LISTEN_PORT = "LISTEN_PORT"
 ENV_VAR_AUTH_TOKEN = "AUTH_TOKEN"
 ENV_VAR_TLS_CERT_PATH = "TLS_CERT_PATH"
 ENV_VAR_TLS_KEY_PATH = "TLS_KEY_PATH"
+ENV_VAR_LOG_LEVEL = "LOG_LEVEL"
 
 BASE_EMAIL_LIST_REGEX = r'(([A-Za-z0-9\-\._~\+]+@[A-Za-z0-9\-\._~\+]+\.[A-Za-z]{2,}),?)+'
 
@@ -98,6 +100,8 @@ class Configuration:
     """HTTP timeout in seconds for Microsoft Graph API requests."""
     server: HttpServerConfiguration
     """HTTP server configuration."""
+    log_level: int = logging.INFO
+    """Logging level for the application."""
 
     def __init__(self):
         client_id: str = os.getenv(ENV_VAR_CLIENT_ID, "")
@@ -111,6 +115,7 @@ class Configuration:
         auth_token: str = os.getenv(ENV_VAR_AUTH_TOKEN, "")
         tls_cert_path: str | None = os.getenv(ENV_VAR_TLS_CERT_PATH)
         tls_key_path: str | None = os.getenv(ENV_VAR_TLS_KEY_PATH)
+        log_level: str = os.getenv(ENV_VAR_LOG_LEVEL, "INFO").upper()
 
         if client_id == "":
             raise ValueError(f"{ENV_VAR_CLIENT_ID} not configured")
@@ -159,6 +164,8 @@ class Configuration:
             or not os.access(tls_key_path or "", os.R_OK)
         )):
             raise ValueError("TLS certificate or key file not readable")
+        if log_level not in logging.getLevelNamesMapping():
+            raise ValueError(f"{ENV_VAR_LOG_LEVEL} invalid")
 
         auth_token = _coalesce_file(auth_token, ENV_VAR_AUTH_TOKEN)
         client_id = _coalesce_file(client_id, ENV_VAR_CLIENT_ID)
@@ -171,6 +178,7 @@ class Configuration:
         self.from_address = from_address
         self.to_addresses = to_addresses_raw.split(',')
         self.http_timeout_seconds = float(http_timeout_seconds_str)
+        self.log_level = logging.getLevelNamesMapping()[log_level]
         self.server = HttpServerConfiguration(
             listen_address=listen_address,
             listen_port=int(listen_port_str),

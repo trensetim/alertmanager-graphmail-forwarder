@@ -35,17 +35,26 @@ class Status(enum.Enum):
 class Alert:
     """An individual alert."""
 
-    generator_url: str
-    """identifies the entity that caused the alert"""
+    status: Status
+    """status of the alert (firing/resolved)"""
 
-    fingerprint: str
-    """fingerprint to identify the alert"""
+    labels: dict[str, str]
+    """labels associated with the alert"""
+
+    annotations: dict[str, str]
+    """annotations associated with the alert"""
 
     starts_at: datetime
     """when the alert started"""
 
     ends_at: datetime | None
     """when the alert ended"""
+
+    generator_url: str
+    """identifies the entity that caused the alert"""
+
+    fingerprint: str
+    """fingerprint to identify the alert"""
 
     def __init__(self,
                  status: Status,
@@ -76,6 +85,24 @@ class Notification:
 
     external_url: str
     """backlink to the Alertmanager"""
+
+    status: Status
+    """overall status of the notification"""
+
+    receiver: str
+    """name of the receiver"""
+
+    group_labels: dict[str, str]
+    """labels common to all alerts in this group"""
+
+    common_labels: dict[str, str]
+    """labels common to all alerts in this notification"""
+
+    common_annotations: dict[str, str]
+    """annotations common to all alerts in this notification"""
+
+    alerts: list[Alert]
+    """list of alerts contained in this notification"""
 
     # pylint: disable=R0913 R0917 # too many arguments -> dataclass
     def __init__(self,
