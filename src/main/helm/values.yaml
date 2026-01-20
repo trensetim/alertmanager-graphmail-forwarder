@@ -135,4 +135,6 @@ config:
     clientSecret: "your-client-secret" # required
     authToken: "authorization-bearer-token" # required
     logLevel: null # optional, default INFO, one of: DEBUG, INFO, WARNING, ERROR, CRITICAL
+    subjectTags: [] # optional list of tags to add to email subject
+    prometheusNamingStrict: false # optional
   additionalValues: {}
