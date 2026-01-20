@@ -1,1 +1,7 @@
-[{{ status }}] {{ alertname }}
+[{{ status }}]
+{%- for i in subject_tag_values -%}
+{{- " " -}}
+[{{- subject_tag_values[i] -}}]
+{%- endfor -%}
+{{ " " }}
+{{- alertname -}}

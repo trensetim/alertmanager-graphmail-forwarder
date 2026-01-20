@@ -43,6 +43,8 @@ The application is configured via environment variables.
 | TLS_CERT_PATH, TLS_KEY_PATH | [default = no tls] Filesystem paths to an X509 certificate in PEM format (for serving the http webhook receiver). The container will automatically pick up on a mounted `/app/tls/tls.crt` and `/app/tls/tls.key` combination. |
 | HTTP_TIMEOUT_SECONDS | default=10 Used during access to MS Graph API |
 | LOG_LEVEL | default=INFO One of: DEBUG, INFO, WARNING, ERROR, CRITICAL |
+| SUBJECT_TAGS | optional. A comma-separated list of label or annotation names which's values shall get prepended to the mail subject line |
+| PROMETHEUS_NAMING_STRICT | default=false. Use pre-v3 [naming conventions](https://prometheus.io/docs/concepts/data_model/#metric-names-and-labels) |
 
 For the sensitive values (`CLIENT_ID`, `CLIENT_SECRET`, `TENANT_ID`, `AUTH_TOKEN`), if they start with a literal `/` (forward-slash), the value is interpreted as a filesystem path and the actual secret value is read from that file.
 The file content will get whitespace-trimmed and UTF-8 decoded.

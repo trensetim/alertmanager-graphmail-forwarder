@@ -11,11 +11,27 @@ class TemplateRenderer:
     The template language is Jinja2.
     """
 
-    def __init__(self):
+    subject_tags: list[str] = []
+    """Labels and/or Annotations to prepend to email subjects, for easier identification."""
+
+    def __init__(self, subject_tags: list[str] | None = None):
+        self.subject_tags = subject_tags if subject_tags is not None else []
         self._jinja_env = Environment(
             loader=PackageLoader(__name__, "templates"),
             autoescape=select_autoescape()
         )
+
+    def _render_subject_tags(self, notification: Notification, alert_index: int) -> dict[str, str]:
+        if alert_index < 0 or alert_index >= len(notification.alerts):
+            raise IndexError("alert_index out of range")
+        alert = notification.alerts[alert_index]
+
+        tags: dict[str, str] = {}
+        for tag in self.subject_tags:
+            value = alert.labels.get(tag) or alert.annotations.get(tag)
+            if value is not None:
+                tags[tag] = value
+        return tags
 
     def _render_properties(self, notification: Notification, alert_index: int) -> dict[str, Any]:
         if alert_index < 0 or alert_index >= len(notification.alerts):
@@ -32,6 +48,8 @@ class TemplateRenderer:
             for key, value in alert.annotations.items()
             if key not in ("summary", "description")
         }
+        subject_tag_values = self._render_subject_tags(notification, alert_index)
+
         return {
             "notification": notification,
             "alert_index": alert_index,
@@ -47,7 +65,9 @@ class TemplateRenderer:
                 else "ongoing",
             "fingerprint": alert.fingerprint,
             "labels": labels,
-            "annotations": annotations
+            "annotations": annotations,
+            "subject_tags": self.subject_tags,
+            "subject_tag_values": subject_tag_values,
         }
 
     def render_mail_subject(self, notification: Notification, alert_index: int) -> str:

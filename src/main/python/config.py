@@ -1,10 +1,12 @@
 """Configuration management for the application."""
 
+from collections.abc import Callable
 import os
 import re
 from dataclasses import dataclass
 import ssl
 import logging
+import csv
 
 ENV_VAR_CLIENT_ID = "CLIENT_ID"
 ENV_VAR_CLIENT_SECRET = "CLIENT_SECRET"
@@ -18,6 +20,8 @@ ENV_VAR_AUTH_TOKEN = "AUTH_TOKEN"
 ENV_VAR_TLS_CERT_PATH = "TLS_CERT_PATH"
 ENV_VAR_TLS_KEY_PATH = "TLS_KEY_PATH"
 ENV_VAR_LOG_LEVEL = "LOG_LEVEL"
+ENV_VAR_PROMETHEUS_NAMING_STRICT = "PROMETHEUS_NAMING_STRICT"
+ENV_VAR_SUBJECT_TAGS = "SUBJECT_TAGS"
 
 BASE_EMAIL_LIST_REGEX = r'(([A-Za-z0-9\-\._~\+]+@[A-Za-z0-9\-\._~\+]+\.[A-Za-z]{2,}),?)+'
 
@@ -78,6 +82,85 @@ class HttpServerConfiguration:
         """Whether authentication is enabled."""
         return self.auth_token is not None
 
+class PrometheusNameParser:
+    """
+    Contains logic to parse Prometheus-style metric names, label names and annotation names.
+
+    Validity rules are outlined in
+    https://prometheus.io/docs/concepts/data_model/#metric-names-and-labels
+
+    Note:
+        - This implementation adheres to Prometheus v3 rules, which allow UTF-8 in names.
+        - This implementation allows special characters, because the Prometheus naming convention
+            only states a SHOULD-regex. If you want hard enforcement, use the ..._stict methods.
+
+    """
+
+    strict_mode: bool = False
+    """Whether to enforce strict Prometheus v2 naming conventions."""
+
+    _METRIC_NAME_PATTERN_STRICT = r'^[a-zA-Z_:][a-zA-Z0-9_:]*$'
+    _LABEL_NAME_PATTERN_STRICT = r'^[a-zA-Z_][a-zA-Z0-9_]*$'
+    _RELAXED_PATTERN = r'^[^"\']+$'
+
+    def __init__(self, strict_mode: bool = False) -> None:
+        self.strict_mode = strict_mode
+
+    def _get_metric_pattern(self) -> str:
+        return (
+            self._METRIC_NAME_PATTERN_STRICT
+                if self.strict_mode
+                else self._RELAXED_PATTERN
+        )
+    def _get_label_pattern(self) -> str:
+        return (
+            self._LABEL_NAME_PATTERN_STRICT
+                if self.strict_mode
+                else self._RELAXED_PATTERN
+        )
+
+    def parse_metric_name(self, name: str) -> str:
+        """
+        Validates a Prometheus-style metric name according to the SHOULD-regex.
+        Throws, if invalid.
+        """
+        return self._parse_name(name, self._get_metric_pattern())
+
+    def parse_label_name(self, name: str) -> str:
+        """
+        Validates a Prometheus-style label/annotation name according to the SHOULD-regex.
+        Throws, if invalid.
+        """
+        return self._parse_name(name, self._get_label_pattern())
+
+    def _parse_name(self, name: str, pattern: str) -> str:
+        match = re.fullmatch(pattern, name)
+        if match is None:
+            raise ValueError(f"Invalid Prometheus-style name: {name}")
+        return match.group(0)
+
+    def parse_labels_csv(self, names: str) -> list[str]:
+        """
+        Parses a comma-separated list of Prometheus-style names.
+        The names must be quoted with (") or (') if they contain special characters.
+        The backslash (\\\\) can be used as an escape character within quoted names.
+        Throws, if any name is invalid.
+
+        Note: This method uses the relaxed name validation of Prometheus v3.
+
+        Args:
+            names (str): eg. "a,b,'c',\"d_ with sp€cia\\\\\" ch4rs\""
+
+        Returns:
+            list[str]: all parsed names
+        """
+        return self._parse_labels_csv(names, self.parse_label_name)
+
+    def _parse_labels_csv(self, names: str, name_parser_func: Callable[[str], str]) -> list[str]:
+        reader = csv.reader([names], escapechar='\\', delimiter=',', skipinitialspace=True)
+        line = next(reader)
+        return [name_parser_func(name) for name in line if name.strip() != ""]
+
 @dataclass
 # pylint: disable=R0902 # too many instance properties -> dataclass
 class Configuration:
@@ -100,8 +183,12 @@ class Configuration:
     """HTTP timeout in seconds for Microsoft Graph API requests."""
     server: HttpServerConfiguration
     """HTTP server configuration."""
+    subject_tags: list[str]
+    """Labels and/or Annotations to prepend to email subjects, for easier identification."""
     log_level: int = logging.INFO
     """Logging level for the application."""
+    prometheus_naming_strict = False
+    """Whether to enforce compatibility (pre-v3) Prometheus naming conventions."""
 
     def __init__(self):
         client_id: str = os.getenv(ENV_VAR_CLIENT_ID, "")
@@ -116,6 +203,10 @@ class Configuration:
         tls_cert_path: str | None = os.getenv(ENV_VAR_TLS_CERT_PATH)
         tls_key_path: str | None = os.getenv(ENV_VAR_TLS_KEY_PATH)
         log_level: str = os.getenv(ENV_VAR_LOG_LEVEL, "INFO").upper()
+        prometheus_naming_strict: bool = (
+            os.getenv(ENV_VAR_PROMETHEUS_NAMING_STRICT, "").lower() == "true"
+        )
+        subject_tags_raw: str = os.getenv(ENV_VAR_SUBJECT_TAGS, "")
 
         if client_id == "":
             raise ValueError(f"{ENV_VAR_CLIENT_ID} not configured")
@@ -172,6 +263,8 @@ class Configuration:
         client_secret = _coalesce_file(client_secret, ENV_VAR_CLIENT_SECRET)
         tenant_id = _coalesce_file(tenant_id, ENV_VAR_TENANT_ID)
 
+        name_parser = PrometheusNameParser(prometheus_naming_strict)
+
         self.client_id = client_id
         self.client_secret = client_secret
         self.tenant_id = tenant_id
@@ -179,6 +272,8 @@ class Configuration:
         self.to_addresses = to_addresses_raw.split(',')
         self.http_timeout_seconds = float(http_timeout_seconds_str)
         self.log_level = logging.getLevelNamesMapping()[log_level]
+        self.prometheus_naming_strict = prometheus_naming_strict
+        self.subject_tags = name_parser.parse_labels_csv(subject_tags_raw)
         self.server = HttpServerConfiguration(
             listen_address=listen_address,
             listen_port=int(listen_port_str),
