@@ -134,4 +134,5 @@ config:
     tenantId: "your-tenant-id" # required
     clientSecret: "your-client-secret" # required
     authToken: "authorization-bearer-token" # required
+    logLevel: null # optional, default INFO, one of: DEBUG, INFO, WARNING, ERROR, CRITICAL
   additionalValues: {}
