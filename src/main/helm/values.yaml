@@ -94,6 +94,8 @@ tls:
         labels: {}
         annotations: {}
         duration: 876000h # 100 years
+        renewBefore: 5% # use % as a suffix if you like: see https://cert-manager.io/docs/reference/api-docs/#cert-manager.io/v1.CertificateSpec
+        revisionHistoryLimit: null # do not specify, use global default of cert-manager
         issuer:
           name: alertmanager-graphmail-forwarder-selfsigned
           kind: Issuer
@@ -116,6 +118,7 @@ tls:
       commonNameOverride: null
       duration: 24h
       renewBefore: 5% # use % as a suffix if you like: see https://cert-manager.io/docs/reference/api-docs/#cert-manager.io/v1.CertificateSpec
+      revisionHistoryLimit: null # do not specify, use global default of cert-manager
 
 
 config:

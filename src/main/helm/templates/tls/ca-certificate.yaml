@@ -20,8 +20,11 @@ metadata:
 
 {{- "" }}
 spec:
-  secretName: {{ .name | quote }}
   isCA: true
+  secretName: {{ .name | quote }}
+  issuerRef:
+    name: {{ .issuer.name | quote }}
+    kind: {{ .issuer.kind }}
   commonName:
     {{- " " -}}
     {{- if .commonNameOverride }}
@@ -29,9 +32,18 @@ spec:
     {{- else }}
     {{- .name | quote -}}
     {{- end }}
+
+  {{- "" }}
   duration: {{ .duration | quote }}
-  issuerRef:
-    name: {{ .issuer.name | quote }}
-    kind: {{ .issuer.kind }}
+  {{- if hasSuffix "%" .renewBefore }}
+  renewBeforePercentage: {{ .renewBefore | replace "%" "" }}
+  {{- else }}
+  renewBefore: {{ .renewBefore }}
+  {{- end }}
+
+  {{- if .revisionHistoryLimit }}
+  revisionHistoryLimit: {{ .revisionHistoryLimit }}
+  {{- end }}
+
 {{- end }}
 {{- end }}

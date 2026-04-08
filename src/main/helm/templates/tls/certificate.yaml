@@ -30,11 +30,16 @@ spec:
     - {{ include "certificateCommonName" . }}
   {{- "" }}
   commonName: {{ include "certificateCommonName" . }}
-  duration: {{ .Values.tls.certManager.certificate.duration }}
 
+  {{- "" }}
+  duration: {{ .Values.tls.certManager.certificate.duration }}
   {{- if hasSuffix "%" .Values.tls.certManager.certificate.renewBefore }}
   renewBeforePercentage: {{ .Values.tls.certManager.certificate.renewBefore | replace "%" "" }}
   {{- else }}
   renewBefore: {{ .Values.tls.certManager.certificate.renewBefore }}
+  {{- end }}
+
+  {{- if .Values.tls.certManager.certificate.revisionHistoryLimit }}
+  revisionHistoryLimit: {{ .Values.tls.certManager.certificate.revisionHistoryLimit }}
   {{- end }}
 {{- end }}
