@@ -43,4 +43,5 @@ curl -X POST -v -H "Content-Type: application/json" -d '{
   "groupKey": "group1"
 }' \
     -H "Authorization: Bearer $AUTH_TOKEN" \
-    "http://localhost:$LISTEN_PORT/alert"
+    --insecure \
+    "https://localhost:$LISTEN_PORT/alert"
