@@ -1,0 +1,16 @@
+<html>
+<body>
+    <style>
+        h2 {
+            color: red;
+        }
+    </style>
+
+    {% from 'email_preheader.makro.jinja' import email_preheader %}
+    {{ email_preheader("alertmanager deadman switch expired") | indent(4) }}
+
+    <h2>alertmanager deadman switch expired</h2>
+
+    {{ timestamp }}
+</body>
+</html>

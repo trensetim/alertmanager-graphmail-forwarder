@@ -1,5 +1,6 @@
 """Module for rendering a notification into an HTML email body."""
 
+import datetime
 from typing import Any
 from jinja2 import Environment, PackageLoader, select_autoescape
 
@@ -13,6 +14,11 @@ class TemplateRenderer:
 
     subject_tags: list[str] = []
     """Labels and/or Annotations to prepend to email subjects, for easier identification."""
+
+    forwarder_deadman_subject: str = "✅ forwarder still alive"
+    """Subject for forwarder deadman emails (sent periodically to indicate liveness of the forwarder)."""
+    alertmanager_deadman_subject: str = "⚠️ alertmanager dead"
+    """Subject for alertmanager deadman emails (sent when no webhook has been received in a while)."""
 
     def __init__(self, subject_tags: list[str] | None = None):
         self.subject_tags = subject_tags if subject_tags is not None else []
@@ -81,3 +87,25 @@ class TemplateRenderer:
         properties = self._render_properties(notification, alert_index)
         template = self._jinja_env.get_template("body.html.jinja")
         return template.render(**properties)
+
+    def render_forwarder_deadman_subject(self) -> str:
+        """Render the forwarder deadman email subject for a given timestamp."""
+        return self.forwarder_deadman_subject
+
+    def render_alertmanager_deadman_subject(self) -> str:
+        """Render the alertmanager deadman email subject for a given timestamp."""
+        return self.alertmanager_deadman_subject
+
+    def render_forwarder_deadman_body(self, now: datetime.datetime | None = None) -> str:
+        """Render the forwarder deadman email body for a given timestamp."""
+        if now is None:
+            now = datetime.datetime.now() # use host timezone
+        template = self._jinja_env.get_template("forwarder_deadman.html.jinja")
+        return template.render(**{"timestamp": now.isoformat()})
+
+    def render_alertmanager_deadman_body(self, now: datetime.datetime | None = None) -> str:
+        """Render the alertmanager deadman email body for a given timestamp."""
+        if now is None:
+            now = datetime.datetime.now() # use host timezone
+        template = self._jinja_env.get_template("alertmanager_deadman.html.jinja")
+        return template.render(**{"timestamp": now.isoformat()})

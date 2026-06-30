@@ -3,3 +3,5 @@ gunicorn
 requests
 python-dotenv
 Jinja2
+APScheduler
+isodate

@@ -1,0 +1,16 @@
+<html>
+<body>
+    <style>
+        h2 {
+            color: green;
+        }
+    </style>
+
+    {% from 'email_preheader.makro.jinja' import email_preheader %}
+    {{ email_preheader("alertmanager-graphmail-forwarder is still alive") | indent(4) }}
+
+    <h2>alertmanager-graphmail-forwarder is still alive</h2>
+
+    {{ timestamp }}
+</body>
+</html>
