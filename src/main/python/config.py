@@ -26,8 +26,10 @@ ENV_VAR_PROMETHEUS_NAMING_STRICT = "PROMETHEUS_NAMING_STRICT"
 ENV_VAR_SUBJECT_TAGS = "SUBJECT_TAGS"
 ENV_VAR_DEADMAN_DISABLED = "DEADMAN_DISABLED"
 ENV_VAR_DEADMAN_INTERVAL = "DEADMAN_INTERVAL"
+ENV_VAR_DEADMAN_FORWARDER_SUBJECT = "DEADMAN_FORWARDER_SUBJECT"
 ENV_VAR_DEADMAN_FORWARDER_AT_START = "DEADMAN_FORWARDER_AT_START"
 ENV_VAR_DEADMAN_FORWARDER_INTERVAL = "DEADMAN_FORWARDER_INTERVAL"
+ENV_VAR_DEADMAN_ALERTMANAGER_SUBJECT = "DEADMAN_ALERTMANAGER_SUBJECT"
 ENV_VAR_DEADMAN_ALERTMANAGER_TIMEOUT = "DEADMAN_ALERTMANAGER_TIMEOUT"
 ENV_VAR_DEADMAN_ALERTMANAGER_INTERVAL = "DEADMAN_ALERTMANAGER_INTERVAL"
 
@@ -204,6 +206,10 @@ class Configuration:
     """The interval at which to check the deadman switches."""
     deadman_forwarder_at_start: bool = False
     """Whether to send a deadman-switch email immediately at startup."""
+    deadman_forwarder_subject: str = "✅ forwarder still alive"
+    """Subject for the deadman-switch email for the forwarder."""
+    deadman_alertmanager_subject: str = "⚠️ alertmanager dead"
+    """Subject for the deadman-switch email for Alertmanager."""
     deadman_alertmanager_timeout: datetime.timedelta = datetime.timedelta(hours=24)
     """How long to wait for any Alertmanager webhook before considering the deadman switch expired."""
     deadman_alertmanager_interval: datetime.timedelta = datetime.timedelta(hours=24)
@@ -344,6 +350,8 @@ class Configuration:
         self.deadman_forwarder_interval = deadman_forwarder_interval
         self.deadman_alertmanager_timeout = deadman_alertmanager_timeout
         self.deadman_alertmanager_interval = deadman_alertmanager_interval
+        self.deadman_forwarder_subject = os.getenv(ENV_VAR_DEADMAN_FORWARDER_SUBJECT, "✅ forwarder still alive")
+        self.deadman_alertmanager_subject = os.getenv(ENV_VAR_DEADMAN_ALERTMANAGER_SUBJECT, "⚠️ alertmanager dead")
 
 def _coalesce_file(secret: str, hint: str) -> str:
     """

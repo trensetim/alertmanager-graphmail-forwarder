@@ -22,7 +22,11 @@ except ValueError as e:
     LOGGER.error("Configuration error: %s", e)
     sys.exit(1)
 
-RENDERER = TemplateRenderer(subject_tags=config.subject_tags)
+RENDERER = TemplateRenderer(
+    subject_tags=config.subject_tags,
+    deadman_forwarder_subject=config.deadman_forwarder_subject,
+    deadman_alertmanager_subject=config.deadman_alertmanager_subject
+)
 MAIL_SENDER = GraphMailSender.default(
     client_id=config.client_id,
     client_secret=config.client_secret,

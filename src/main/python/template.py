@@ -20,8 +20,15 @@ class TemplateRenderer:
     deadman_alertmanager_subject: str
     """Subject for alertmanager deadman emails (sent when no webhook has been received in a while)."""
 
-    def __init__(self, subject_tags: list[str] | None = None):
-        self.subject_tags = subject_tags if subject_tags is not None else []
+    def __init__(
+        self,
+        subject_tags: list[str] ,
+        deadman_forwarder_subject: str,
+        deadman_alertmanager_subject: str
+    ):
+        self.subject_tags = subject_tags
+        self.deadman_forwarder_subject = deadman_forwarder_subject
+        self.deadman_alertmanager_subject = deadman_alertmanager_subject
         self._jinja_env = Environment(
             loader=PackageLoader(__name__, "templates"),
             autoescape=select_autoescape()
