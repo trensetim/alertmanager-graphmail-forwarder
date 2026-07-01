@@ -140,4 +140,13 @@ config:
     logLevel: null # optional, default INFO, one of: DEBUG, INFO, WARNING, ERROR, CRITICAL
     subjectTags: [] # optional list of tags to add to email subject
     prometheusNamingStrict: false # optional
+    deadman:
+      disabled: false
+      interval: "PT30S"
+      forwarderSubject: "✅ forwarder still alive"
+      forwarderAtStart: false
+      forwarderInterval: "PT24H"
+      alertmanagerSubject: "⚠️ alertmanager dead"
+      alertmanagerTimeout: "PT30S"
+      alertmanagerInterval: "PT15S"
   additionalValues: {}
