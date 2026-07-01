@@ -202,13 +202,13 @@ class Configuration:
     """Whether to disable the deadman switch functionality."""
     deadman_interval: datetime.timedelta = datetime.timedelta(seconds=30)
     """The interval at which to check the deadman switches."""
-    forwarder_deadman_at_start: bool = False
+    deadman_forwarder_at_start: bool = False
     """Whether to send a deadman-switch email immediately at startup."""
-    alertmanager_deadman_timeout: datetime.timedelta = datetime.timedelta(hours=24)
+    deadman_alertmanager_timeout: datetime.timedelta = datetime.timedelta(hours=24)
     """How long to wait for any Alertmanager webhook before considering the deadman switch expired."""
-    alertmanager_deadman_interval: datetime.timedelta = datetime.timedelta(hours=24)
+    deadman_alertmanager_interval: datetime.timedelta = datetime.timedelta(hours=24)
     """How long to wait between sending consecutive alertmanager deadman emails (if alertmanager is still down)."""
-    forwarder_deadman_interval: datetime.timedelta = datetime.timedelta(hours=24)
+    deadman_forwarder_interval: datetime.timedelta = datetime.timedelta(hours=24)
     """The interval at which to send out deadman-switch emails."""
 
     def __init__(self):
@@ -232,13 +232,13 @@ class Configuration:
         deadman_disabled = bool(os.getenv(ENV_VAR_DEADMAN_DISABLED, "").lower() == "true")
         deadman_interval_raw: str = os.getenv(ENV_VAR_DEADMAN_INTERVAL, "PT30S")
         deadman_interval: datetime.timedelta = isodate.parse_duration(deadman_interval_raw) # type: ignore
-        forwarder_deadman_at_start = bool(os.getenv(ENV_VAR_DEADMAN_FORWARDER_AT_START, "false").lower() == "true")
+        deadman_forwarder_at_start = bool(os.getenv(ENV_VAR_DEADMAN_FORWARDER_AT_START, "false").lower() == "true")
         forwarder_deadman_interval_raw: str = os.getenv(ENV_VAR_DEADMAN_FORWARDER_INTERVAL, "PT24H")
-        forwarder_deadman_interval: datetime.timedelta = isodate.parse_duration(forwarder_deadman_interval_raw) # type: ignore
+        deadman_forwarder_interval: datetime.timedelta = isodate.parse_duration(forwarder_deadman_interval_raw) # type: ignore
         alertmanager_deadman_timeout_raw: str = os.getenv(ENV_VAR_DEADMAN_ALERTMANAGER_TIMEOUT, "PT24H")
-        alertmanager_deadman_timeout: datetime.timedelta = isodate.parse_duration(alertmanager_deadman_timeout_raw) # type: ignore
+        deadman_alertmanager_timeout: datetime.timedelta = isodate.parse_duration(alertmanager_deadman_timeout_raw) # type: ignore
         alertmanager_deadman_interval_raw: str = os.getenv(ENV_VAR_DEADMAN_ALERTMANAGER_INTERVAL, "PT24H")
-        alertmanager_deadman_interval: datetime.timedelta = isodate.parse_duration(alertmanager_deadman_interval_raw) # type: ignore
+        deadman_alertmanager_interval: datetime.timedelta = isodate.parse_duration(alertmanager_deadman_interval_raw) # type: ignore
 
         if client_id == "":
             raise ValueError(f"{ENV_VAR_CLIENT_ID} not configured")
@@ -290,22 +290,22 @@ class Configuration:
         if log_level not in logging.getLevelNamesMapping():
             raise ValueError(f"{ENV_VAR_LOG_LEVEL} invalid")
 
-        if isinstance(forwarder_deadman_interval, isodate.Duration):
-            forwarder_deadman_interval = forwarder_deadman_interval.totimedelta(start = datetime.datetime.now()) # type: ignore
-        if isinstance(alertmanager_deadman_interval, isodate.Duration):
-            alertmanager_deadman_interval = alertmanager_deadman_interval.totimedelta(start = datetime.datetime.now()) # type: ignore
+        if isinstance(deadman_forwarder_interval, isodate.Duration):
+            deadman_forwarder_interval = deadman_forwarder_interval.totimedelta(start = datetime.datetime.now()) # type: ignore
+        if isinstance(deadman_alertmanager_interval, isodate.Duration):
+            deadman_alertmanager_interval = deadman_alertmanager_interval.totimedelta(start = datetime.datetime.now()) # type: ignore
         # for deadman_interval and alertmanager_deadman_timeout, we assert that they are
         # not a Duration, because we don't want to allow months/years there, only seconds/minutes/hours/days
 
         if deadman_interval <= datetime.timedelta(seconds=0): # type: ignore
             raise ValueError(f"{ENV_VAR_DEADMAN_INTERVAL} must be positive")
-        if forwarder_deadman_interval <= datetime.timedelta(seconds=0): # type: ignore
+        if deadman_forwarder_interval <= datetime.timedelta(seconds=0): # type: ignore
             raise ValueError(f"{ENV_VAR_DEADMAN_FORWARDER_INTERVAL} must be positive")
-        if alertmanager_deadman_timeout <= datetime.timedelta(seconds=0): # type: ignore
+        if deadman_alertmanager_timeout <= datetime.timedelta(seconds=0): # type: ignore
             raise ValueError(f"{ENV_VAR_DEADMAN_ALERTMANAGER_TIMEOUT} must be positive")
-        if alertmanager_deadman_interval <= datetime.timedelta(seconds=0): # type: ignore
+        if deadman_alertmanager_interval <= datetime.timedelta(seconds=0): # type: ignore
             raise ValueError(f"{ENV_VAR_DEADMAN_ALERTMANAGER_INTERVAL} must be positive")
-        if alertmanager_deadman_timeout >= datetime.timedelta(days=365): # type: ignore
+        if deadman_alertmanager_timeout >= datetime.timedelta(days=365): # type: ignore
             raise ValueError(f"{ENV_VAR_DEADMAN_ALERTMANAGER_TIMEOUT} is unreasonably long (1+ years)")
 
         auth_token = _coalesce_file(auth_token, ENV_VAR_AUTH_TOKEN)
@@ -340,10 +340,10 @@ class Configuration:
 
         self.deadman_disabled = deadman_disabled
         self.deadman_interval = deadman_interval
-        self.forwarder_deadman_at_start = forwarder_deadman_at_start
-        self.forwarder_deadman_interval = forwarder_deadman_interval
-        self.alertmanager_deadman_timeout = alertmanager_deadman_timeout
-        self.alertmanager_deadman_interval = alertmanager_deadman_interval
+        self.deadman_forwarder_at_start = deadman_forwarder_at_start
+        self.deadman_forwarder_interval = deadman_forwarder_interval
+        self.deadman_alertmanager_timeout = deadman_alertmanager_timeout
+        self.deadman_alertmanager_interval = deadman_alertmanager_interval
 
 def _coalesce_file(secret: str, hint: str) -> str:
     """

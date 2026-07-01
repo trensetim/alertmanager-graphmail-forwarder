@@ -33,10 +33,10 @@ MAIL_SENDER = GraphMailSender.default(
 )
 DEDUPLICATOR = Deduplicator()
 DEADMAN = Deadman(
-    config.alertmanager_deadman_timeout,
-    config.alertmanager_deadman_interval,
-    config.forwarder_deadman_interval,
-    config.forwarder_deadman_at_start,
+    config.deadman_alertmanager_timeout,
+    config.deadman_alertmanager_interval,
+    config.deadman_forwarder_interval,
+    config.deadman_forwarder_at_start,
     logger=LOGGER.getChild("deadman")
 )
 

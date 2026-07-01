@@ -15,9 +15,9 @@ class TemplateRenderer:
     subject_tags: list[str] = []
     """Labels and/or Annotations to prepend to email subjects, for easier identification."""
 
-    forwarder_deadman_subject: str = "✅ forwarder still alive"
+    deadman_forwarder_subject: str
     """Subject for forwarder deadman emails (sent periodically to indicate liveness of the forwarder)."""
-    alertmanager_deadman_subject: str = "⚠️ alertmanager dead"
+    deadman_alertmanager_subject: str
     """Subject for alertmanager deadman emails (sent when no webhook has been received in a while)."""
 
     def __init__(self, subject_tags: list[str] | None = None):
@@ -90,22 +90,22 @@ class TemplateRenderer:
 
     def render_forwarder_deadman_subject(self) -> str:
         """Render the forwarder deadman email subject for a given timestamp."""
-        return self.forwarder_deadman_subject
+        return self.deadman_forwarder_subject
 
     def render_alertmanager_deadman_subject(self) -> str:
         """Render the alertmanager deadman email subject for a given timestamp."""
-        return self.alertmanager_deadman_subject
+        return self.deadman_alertmanager_subject
 
     def render_forwarder_deadman_body(self, now: datetime.datetime | None = None) -> str:
         """Render the forwarder deadman email body for a given timestamp."""
         if now is None:
             now = datetime.datetime.now() # use host timezone
-        template = self._jinja_env.get_template("forwarder_deadman.html.jinja")
+        template = self._jinja_env.get_template("deadman_forwarder.html.jinja")
         return template.render(**{"timestamp": now.isoformat()})
 
     def render_alertmanager_deadman_body(self, now: datetime.datetime | None = None) -> str:
         """Render the alertmanager deadman email body for a given timestamp."""
         if now is None:
             now = datetime.datetime.now() # use host timezone
-        template = self._jinja_env.get_template("alertmanager_deadman.html.jinja")
+        template = self._jinja_env.get_template("deadman_alertmanager.html.jinja")
         return template.render(**{"timestamp": now.isoformat()})
