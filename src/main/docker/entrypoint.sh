@@ -4,8 +4,6 @@
 export HTTP_TIMEOUT_SECONDS=${HTTP_TIMEOUT_SECONDS:-10.0}
 export LISTEN_ADDRESS=${LISTEN_ADDRESS:-0.0.0.0}
 export LISTEN_PORT=${LISTEN_PORT:-8080}
-export GUNICORN_WORKERS=${GUNICORN_WORKERS:-2}
-export GUNICORN_THREADS=${GUNICORN_THREADS:-4}
 
 function watch_tls_cert {
     # monitor TLS certificate files and restart the server if they change
@@ -37,10 +35,8 @@ else
     TLS_CLIARGS=""
 fi
 
+# we use the default 1 worker & 1 thread, because the application relies on in-process direct function calls
 exec gunicorn \
-    -k gthread \
-    --workers $GUNICORN_WORKERS \
-    --threads $GUNICORN_THREADS \
     -b $LISTEN_ADDRESS:$LISTEN_PORT \
     $TLS_CLIARGS \
     main:flask

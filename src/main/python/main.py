@@ -164,7 +164,7 @@ def on_alertmanager_deadman_due() -> None:
 
 def startup() -> None:
     """Startup logic to be called during module loading, such that it works both when debugging and when running in production with gunicorn."""
-    print(f"\nRunning with configuration: {config}\n")
+    LOGGER.info("Running with configuration: %s", config)
     if not config.deadman_disabled:
         LOGGER.info("Forwarder deadman switch is enabled, installing scheduler at interval %s", config.deadman_interval)
         DEADMAN.dispatch_scheduler(on_forwarder_deadman_due, on_alertmanager_deadman_due, config.deadman_interval)
