@@ -162,15 +162,17 @@ def on_alertmanager_deadman_due() -> None:
     )
     DEADMAN.notify_alertmanager_deadman_sent()
 
-if __name__ == "__main__":
+def startup() -> None:
+    """Startup logic to be called during module loading, such that it works both when debugging and when running in production with gunicorn."""
     print(f"\nRunning with configuration: {config}\n")
-
     if not config.deadman_disabled:
         LOGGER.info("Forwarder deadman switch is enabled, installing scheduler at interval %s", config.deadman_interval)
         DEADMAN.dispatch_scheduler(on_forwarder_deadman_due, on_alertmanager_deadman_due, config.deadman_interval)
     else:
         LOGGER.info("Forwarder deadman switch is disabled")
 
+startup()
+if __name__ == "__main__":
     flask.run(
         host=config.server.listen_address,
         port=config.server.listen_port,
