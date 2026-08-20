@@ -35,6 +35,8 @@ class Deadman:
     """How long to wait between sending consecutive alertmanager deadman emails (if alertmanager is still down)."""
     alertmanager_deadman_last_sent: datetime.datetime | None = None
     """The timestamp of the last alertmanager deadman email sent."""
+    alertmanager_deadman_inhibition_alert_label_filter: dict[str, str]
+    """Labels to identify the deadman-inhibition alert (empty disables the filter)."""
 
     forwarder_deadman_interval: datetime.timedelta
     """The interval at which to send out deadman-switch emails."""
@@ -49,6 +51,7 @@ class Deadman:
         self,
         alertmanager_deadman_timeout: datetime.timedelta,
         alertmanager_deadman_interval: datetime.timedelta,
+        alertmanager_deadman_inhibition_alert_label_filter: dict[str, str],
         forwarder_deadman_interval: datetime.timedelta,
         forwarder_deadman_at_start: bool = True,
         now: datetime.datetime | None = None,
@@ -69,8 +72,30 @@ class Deadman:
         self.forwarder_deadman_at_start = forwarder_deadman_at_start
         self.alertmanager_deadman_timeout = alertmanager_deadman_timeout
         self.alertmanager_deadman_interval = alertmanager_deadman_interval
+        self.alertmanager_deadman_inhibition_alert_label_filter = alertmanager_deadman_inhibition_alert_label_filter
         self.last_alertmanager_checkin_timestamp = now or datetime.datetime.now()
+        self.alertmanager_deadman_last_sent = None
+        self.forwarder_deadman_last_sent = None
         self.logger = logger or Logger("deadman")
+
+    def inhibition_filter_to_string(self) -> str:
+        """Return a string representation of the inhibition filter labels."""
+        if len(self.alertmanager_deadman_inhibition_alert_label_filter) == 0:
+            return "<none>"
+        return ",".join(f"{k}={v}" for k, v in self.alertmanager_deadman_inhibition_alert_label_filter.items())
+
+    def does_alert_match_inhibition_label_filter(self, alert_labels: dict[str, str]) -> bool:
+        """Check whether the given alert should be considered the inhibition-alert for the alertmanager-deadman-switch."""
+        if len(self.alertmanager_deadman_inhibition_alert_label_filter) == 0:
+            return False
+
+        for key, value in self.alertmanager_deadman_inhibition_alert_label_filter.items():
+            if value == "" and key not in alert_labels:
+                return False
+            if value != "" and alert_labels.get(key) != value:
+                return False
+
+        return True
 
     def notify_alertmanager_deadman_checkin(self, now: datetime.datetime | None = None) -> None:
         """Notify the deadman switch that alertmanager checked in."""

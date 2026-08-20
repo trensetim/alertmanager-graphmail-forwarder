@@ -149,4 +149,7 @@ config:
       alertmanagerSubject: "⚠️ alertmanager dead"
       alertmanagerTimeout: "PT30S"
       alertmanagerInterval: "PT15S"
+      alertmanagerInhibitionAlertLabelFilter: {
+        "alertname": "Watchdog"
+      }
   additionalValues: {}

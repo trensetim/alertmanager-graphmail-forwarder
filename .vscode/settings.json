@@ -1,6 +1,6 @@
 {
 	"python.analysis.typeCheckingMode": "strict",
     "pylint.args": [
-        "--max-line-length=200"
+        "--max-line-length=210"
     ]
 }

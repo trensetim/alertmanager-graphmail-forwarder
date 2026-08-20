@@ -39,6 +39,7 @@ DEDUPLICATOR = Deduplicator()
 DEADMAN = Deadman(
     config.deadman_alertmanager_timeout,
     config.deadman_alertmanager_interval,
+    config.deadman_alertmanager_inhibition_alert_label_filter,
     config.deadman_forwarder_interval,
     config.deadman_forwarder_at_start,
     logger=LOGGER.getChild("deadman")
@@ -116,7 +117,19 @@ def on_webhook() -> Response:
         LOGGER.warning("Duplicate notification received: %s", notification.group_key)
         return Response("Duplicate notification", status=200, mimetype="text/plain")
 
-    for i in range(len(notification.alerts)):
+    alerts_to_send = [a for a in notification.alerts if not DEADMAN.does_alert_match_inhibition_label_filter(a.labels)]
+    inhibition_alerts_count = len(notification.alerts) - len(alerts_to_send)
+    if inhibition_alerts_count == 1:
+        LOGGER.info("Inhibition filter matched one of %s alerts: skipping it", len(notification.alerts))
+    elif inhibition_alerts_count > 1:
+        LOGGER.warning("Inhibition filter matched %d alerts: skipping them all", inhibition_alerts_count)
+
+    if len(alerts_to_send) == 0:
+        LOGGER.info("No alerts to send after applying inhibition filter, skipping email (likely all fine, just the inhibition alert firing)")
+        # we do not add the group_key to the deduplicator, since we want to pass the deduplication check for the next alertmanager webhook, which may include an additional real alert
+        return Response(f"No alerts to send after filtering out alerts matching: {DEADMAN.inhibition_filter_to_string()}", status=200, mimetype="text/plain")
+
+    for i in range(len(alerts_to_send)):
         MAIL_SENDER.send(
             subject=RENDERER.render_mail_subject(notification, alert_index=i),
             body=RENDERER.render_mail_body(notification, alert_index=i)
@@ -127,7 +140,7 @@ def on_webhook() -> Response:
     # but we accept that for simplicity
     DEDUPLICATOR.add(notification.group_key)
 
-    LOGGER.info("Notification processed: %d alerts sent", len(notification.alerts))
+    LOGGER.info("Notification processed: %d alerts sent", len(alerts_to_send))
     LOGGER.debug("%s", notification)
     return Response(status=200)
 

@@ -4,7 +4,7 @@ from collections.abc import Callable
 import datetime
 import os
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 import ssl
 import logging
 import csv
@@ -33,6 +33,7 @@ ENV_VAR_DEADMAN_FORWARDER_INTERVAL = "DEADMAN_FORWARDER_INTERVAL"
 ENV_VAR_DEADMAN_ALERTMANAGER_SUBJECT = "DEADMAN_ALERTMANAGER_SUBJECT"
 ENV_VAR_DEADMAN_ALERTMANAGER_TIMEOUT = "DEADMAN_ALERTMANAGER_TIMEOUT"
 ENV_VAR_DEADMAN_ALERTMANAGER_INTERVAL = "DEADMAN_ALERTMANAGER_INTERVAL"
+ENV_VAR_DEADMAN_ALERTMANAGER_INHIBITION_ALERT_LABEL_FILTER = "DEADMAN_ALERTMANAGER_INHIBITION_ALERT_LABEL_FILTER"
 
 BASE_EMAIL_LIST_REGEX = r'(([A-Za-z0-9\-\._~\+]+@[A-Za-z0-9\-\._~\+]+\.[A-Za-z]{2,}),?)+'
 
@@ -234,6 +235,8 @@ class Configuration:
     """How long to wait for any Alertmanager webhook before considering the deadman switch expired."""
     deadman_alertmanager_interval: datetime.timedelta = datetime.timedelta(hours=24)
     """How long to wait between sending consecutive alertmanager deadman emails (if alertmanager is still down)."""
+    deadman_alertmanager_inhibition_alert_label_filter: dict[str, str] = field(default_factory=dict[str,str])
+    """Labels to identify the deadman-inhibition alert (empty disables the filter)."""
     deadman_forwarder_interval: datetime.timedelta = datetime.timedelta(hours=24)
     """The interval at which to send out deadman-switch emails."""
 
@@ -265,6 +268,7 @@ class Configuration:
         deadman_alertmanager_timeout: datetime.timedelta = isodate.parse_duration(alertmanager_deadman_timeout_raw) # type: ignore
         alertmanager_deadman_interval_raw: str = os.getenv(ENV_VAR_DEADMAN_ALERTMANAGER_INTERVAL, "PT24H")
         deadman_alertmanager_interval: datetime.timedelta = isodate.parse_duration(alertmanager_deadman_interval_raw) # type: ignore
+        deadman_alertmanager_inhibition_alert_labels_raw: str = os.getenv(ENV_VAR_DEADMAN_ALERTMANAGER_INHIBITION_ALERT_LABEL_FILTER, "alertname=Watchdog")
 
         if client_id == "":
             raise ValueError(f"{ENV_VAR_CLIENT_ID} not configured")
@@ -372,6 +376,8 @@ class Configuration:
         self.deadman_alertmanager_interval = deadman_alertmanager_interval
         self.deadman_forwarder_subject = os.getenv(ENV_VAR_DEADMAN_FORWARDER_SUBJECT, "✅ forwarder still alive")
         self.deadman_alertmanager_subject = os.getenv(ENV_VAR_DEADMAN_ALERTMANAGER_SUBJECT, "⚠️ alertmanager dead")
+        self.deadman_alertmanager_inhibition_alert_label_filter = _parse_comma_separated_labels(deadman_alertmanager_inhibition_alert_labels_raw)
+
     def __str__(self):
         return (
             "{\n"
@@ -392,6 +398,7 @@ class Configuration:
             + "\"deadman_alertmanager_subject\": \"" + self.deadman_alertmanager_subject + "\",\n"
             + "\"deadman_alertmanager_timeout\": \"" + str(self.deadman_alertmanager_timeout).lower() + "\",\n"
             + "\"deadman_alertmanager_interval\": \"" + str(self.deadman_alertmanager_interval).lower() + "\",\n"
+            + "\"deadman_alertmanager_inhibition_alert_label_filter\": {\n  " + ",\n  ".join(f"\"{k}\": \"{v}\"" for k, v in self.deadman_alertmanager_inhibition_alert_label_filter.items()) + "\n  },\n"
             + "\"deadman_forwarder_interval\": \"" + str(self.deadman_forwarder_interval).lower() + "\"\n"
             + "}"
         )
@@ -409,3 +416,22 @@ def _coalesce_file(secret: str, hint: str) -> str:
         except Exception as e:
             raise ValueError(f"Failed to read secret from file ({hint})") from e
     return secret
+
+def _parse_comma_separated_labels(labels_str: str) -> dict[str, str]:
+    """
+    Parses a comma-separated list of key=value pairs into a dictionary.
+    If a key has no value, it will be stored with an empty string as the value.
+    If the input string is empty or only contains whitespace, an empty dictionary is returned.
+    """
+    labels: dict[str,str] = {}
+    if labels_str.strip() == "":
+        return labels
+    for pair in labels_str.split(","):
+        if pair.strip() == "":
+            continue
+        if "=" not in pair:
+            labels[pair.strip()] = "" # take entire part as the key
+            continue
+        key, value = pair.split("=", 1)
+        labels[key.strip()] = value.strip()
+    return labels
