@@ -34,6 +34,12 @@ pod:
   tolerations: []
   affinity: {}
   portOverride: null # {name, number} defaults to http/8080 or https/8443 depending on tls.enabled
+  healthcheck:
+    initialDelaySeconds: 3
+    periodSeconds: 10
+    timeoutSeconds: 5
+    successThreshold: 1
+    failureThreshold: 6
   env: []
   # additional envFrom sources, if .configEnabled, otherwise the only ones
   envFrom: []

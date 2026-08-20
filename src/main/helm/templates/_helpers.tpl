@@ -50,5 +50,9 @@ httpGet:
   port: {{ ternary "https" "http" .Values.tls.enabled }}
   {{- end }}
   scheme: {{ ternary "HTTPS" "HTTP" .Values.tls.enabled }}
-initialDelaySeconds: 1
+initialDelaySeconds: {{ .Values.pod.healthcheck.initialDelaySeconds }}
+periodSeconds: {{ .Values.pod.healthcheck.periodSeconds }}
+timeoutSeconds: {{ .Values.pod.healthcheck.timeoutSeconds }}
+successThreshold: {{ .Values.pod.healthcheck.successThreshold }}
+failureThreshold: {{ .Values.pod.healthcheck.failureThreshold }}
 {{- end -}}
