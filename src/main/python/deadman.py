@@ -184,7 +184,7 @@ class Deadman:
         Start off a background scheduler to check the deadman switches periodically.
         Returns immediately the scheduler object, which can be used to stop the scheduler later.
         """
-        scheduler = BackgroundScheduler()
+        scheduler = BackgroundScheduler(timezone=datetime.datetime.now().astimezone().tzinfo)
 
         scheduler.add_job( # type: ignore
             func=lambda: self._check_deadman_switches(on_forwarder_deadman_due, on_alertmanager_deadman_due),
