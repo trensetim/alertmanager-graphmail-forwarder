@@ -72,6 +72,12 @@ spec:
 
           {{- "" }}
           env:
+            # gunicorn needs a writable HOME directory, but by default, the container fs is read-only
+            - name: HOME
+              value: /tmp
+            - name: XDG_RUNTIME_DIR
+              value: /tmp
+
             {{- if .Values.pod.portOverride }}
             - name: LISTEN_PORT
               value: "{{ .Values.pod.portOverride.number }}"
