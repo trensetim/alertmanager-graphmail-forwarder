@@ -150,6 +150,8 @@ def on_alertmanager_deadman_due() -> None:
     DEADMAN.notify_alertmanager_deadman_sent()
 
 if __name__ == "__main__":
+    print(f"\nRunning with configuration: {config}\n")
+
     if not config.deadman_disabled:
         LOGGER.info("Forwarder deadman switch is enabled, installing scheduler at interval %s", config.deadman_interval)
         DEADMAN.dispatch_scheduler(on_forwarder_deadman_due, on_alertmanager_deadman_due, config.deadman_interval)

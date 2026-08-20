@@ -2,13 +2,14 @@
 
 from collections.abc import Callable
 import datetime
-import isodate
 import os
 import re
 from dataclasses import dataclass
 import ssl
 import logging
 import csv
+
+import isodate
 
 ENV_VAR_CLIENT_ID = "CLIENT_ID"
 ENV_VAR_CLIENT_SECRET = "CLIENT_SECRET"
@@ -92,6 +93,25 @@ class HttpServerConfiguration:
         """Whether authentication is enabled."""
         return self.auth_token is not None
 
+    def __str__(self) -> str:
+        return (
+            "{\n"
+            + "\"listen_address\": \"" + self.listen_address + "\",\n"
+            + "\"listen_port\": " + str(self.listen_port) + ",\n"
+            + "\"auth_enabled\": " + str(self.is_auth_enabled()).lower() + ",\n"
+            + "\"auth_token\": \"***" + (str(len(self.auth_token)) if self.auth_token is not None else "0") + " chars***\",\n"
+            + (
+                (
+                    "\"tls_enabled\": true,\n"
+                    + "\"tls_cert_path\": \"" + self.tls.cert_path + "\",\n"
+                    + "\"tls_key_path\": \"" + self.tls.key_path + "\"\n"
+                )
+                if self.tls is not None else (
+                    "\"tls_enabled\": false\n"
+                )
+            )
+            + "}"
+        )
 class PrometheusNameParser:
     """
     Contains logic to parse Prometheus-style metric names, label names and annotation names.
@@ -352,6 +372,29 @@ class Configuration:
         self.deadman_alertmanager_interval = deadman_alertmanager_interval
         self.deadman_forwarder_subject = os.getenv(ENV_VAR_DEADMAN_FORWARDER_SUBJECT, "✅ forwarder still alive")
         self.deadman_alertmanager_subject = os.getenv(ENV_VAR_DEADMAN_ALERTMANAGER_SUBJECT, "⚠️ alertmanager dead")
+    def __str__(self):
+        return (
+            "{\n"
+            + "\"client_id\": \"" + self.client_id + "\",\n"
+            + "\"client_secret\": \"***" + str(len(self.client_secret)) + " chars***\",\n"
+            + "\"tenant_id\": \"" + self.tenant_id + "\",\n"
+            + "\"from_address\": \"" + self.from_address + "\",\n"
+            + "\"to_addresses\": [" + ",".join(f"\"{addr}\"" for addr in self.to_addresses) + "],\n"
+            + "\"http_timeout_seconds\": " + str(self.http_timeout_seconds) + ",\n"
+            + "\"server\": " + str(self.server).replace("\n", "\n  ") + ",\n"
+            + "\"subject_tags\": [" + ",".join(f"\"{tag}\"" for tag in self.subject_tags) + "],\n"
+            + "\"log_level\": \"" + logging.getLevelName(self.log_level) + "\",\n"
+            + "\"prometheus_naming_strict\": " + str(self.prometheus_naming_strict).lower() + ",\n"
+            + "\"deadman_disabled\": " + str(self.deadman_disabled).lower() + ",\n"
+            + "\"deadman_interval\": \"" + str(self.deadman_interval).lower() + "\",\n"
+            + "\"deadman_forwarder_at_start\": " + str(self.deadman_forwarder_at_start).lower() + ",\n"
+            + "\"deadman_forwarder_subject\": \"" + self.deadman_forwarder_subject + "\",\n"
+            + "\"deadman_alertmanager_subject\": \"" + self.deadman_alertmanager_subject + "\",\n"
+            + "\"deadman_alertmanager_timeout\": \"" + str(self.deadman_alertmanager_timeout).lower() + "\",\n"
+            + "\"deadman_alertmanager_interval\": \"" + str(self.deadman_alertmanager_interval).lower() + "\",\n"
+            + "\"deadman_forwarder_interval\": \"" + str(self.deadman_forwarder_interval).lower() + "\"\n"
+            + "}"
+        )
 
 def _coalesce_file(secret: str, hint: str) -> str:
     """
