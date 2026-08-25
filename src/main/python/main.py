@@ -7,7 +7,6 @@ from flask import Flask, request, Response
 from http_server import static_bearer_auth
 from graph_mail import GraphMailSender
 from alertmanager import Notification
-from dedup import Deduplicator
 from deadman import Deadman
 from template import TemplateRenderer
 from config import Configuration
@@ -36,7 +35,6 @@ MAIL_SENDER = GraphMailSender.default(
     default_to_address=config.to_addresses,
     timeout_seconds=config.http_timeout_seconds,
 )
-DEDUPLICATOR = Deduplicator()
 DEADMAN = Deadman(
     config.deadman_alertmanager_timeout,
     config.deadman_alertmanager_interval,
@@ -114,18 +112,6 @@ def on_webhook() -> Response:
     # but before the deduplication, since we respect ANY signs of life
     DEADMAN.notify_alertmanager_deadman_checkin()
 
-    duplication_check = DEDUPLICATOR.check(notification)
-    if duplication_check.is_duplicate:
-        LOGGER.warning(
-            "Duplicate notification received: hash=%s, group_key=%s, alerts=%d, status=%s, receiver=%s",
-            duplication_check.hash_key,
-            notification.group_key,
-            len(notification.alerts),
-            notification.status.value,
-            notification.receiver
-        )
-        return Response(f"Duplicate notification, hash={duplication_check.hash_key}", status=200, mimetype="text/plain")
-
     alerts_to_send = [a for a in notification.alerts if not DEADMAN.does_alert_match_inhibition_label_filter(a.labels)]
     inhibition_alerts_count = len(notification.alerts) - len(alerts_to_send)
     if inhibition_alerts_count == 1:
@@ -145,11 +131,7 @@ def on_webhook() -> Response:
             # to=<use default>
         )
 
-    # partial failure of sending will lead to duplicate emails when appending only here,
-    # but we accept that for simplicity
-    DEDUPLICATOR.add(notification)
-
-    LOGGER.info("Notification processed: %d alerts sent, hash=%s", len(alerts_to_send), duplication_check.hash_key)
+    LOGGER.info("Notification processed: %d alerts sent", len(alerts_to_send))
     LOGGER.debug("%s", notification)
     return Response(status=200)
 
