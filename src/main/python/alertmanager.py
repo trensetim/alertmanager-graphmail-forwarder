@@ -60,7 +60,7 @@ class Notification:
     """4"""
 
     group_key: str
-    """key identifying the group of alerts (e.g. to deduplicate)"""
+    """key identifying the group of alerts"""
 
     external_url: str
     """backlink to the Alertmanager"""

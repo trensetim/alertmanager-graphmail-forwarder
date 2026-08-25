@@ -108,8 +108,7 @@ def on_webhook() -> Response:
 
     notification = Notification.parse(data)
 
-    # we only count the checkin, if all checks pass (ie. no malformed input),
-    # but before the deduplication, since we respect ANY signs of life
+    # we only count the checkin, if all checks pass (ie. no malformed input)
     DEADMAN.notify_alertmanager_deadman_checkin()
 
     alerts_to_send = [a for a in notification.alerts if not DEADMAN.does_alert_match_inhibition_label_filter(a.labels)]
@@ -121,7 +120,6 @@ def on_webhook() -> Response:
 
     if len(alerts_to_send) == 0:
         LOGGER.debug("No alerts to send after applying inhibition filter, skipping email (likely all fine, just the inhibition alert firing)")
-        # we do not add the group_key to the deduplicator, since we want to pass the deduplication check for the next alertmanager webhook, which may include an additional real alert
         return Response(f"No alerts to send after filtering out alerts matching: {DEADMAN.inhibition_filter_to_string()}", status=200, mimetype="text/plain")
 
     for i in range(len(alerts_to_send)):
