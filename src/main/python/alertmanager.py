@@ -3,33 +3,12 @@
 import enum
 from datetime import datetime
 from dataclasses import dataclass
-import collections
 from typing import Any
-
-class Deduplicator:
-    """Deduplicator for Alertmanager notifications."""
-
-    sent_notifications_dedup_cache: collections.deque[str]
-    """Cache the groupKeys of received notifications to avoid sending duplicates."""
-
-    def __init__(self, maxlen: int = 100):
-        self.sent_notifications_dedup_cache = collections.deque(maxlen=maxlen)
-
-    def is_present(self, group_key: str) -> bool:
-        """Check if the given group_key has already been seen."""
-        if group_key in self.sent_notifications_dedup_cache:
-            return True
-        return False
-
-    def add(self, group_key: str):
-        """Add the given group_key to the deduplication cache."""
-        self.sent_notifications_dedup_cache.append(group_key)
 
 class Status(enum.Enum):
     """Notification Status"""
     FIRING = "firing"
     RESOLVED = "resolved"
-
 
 @dataclass
 class Alert:

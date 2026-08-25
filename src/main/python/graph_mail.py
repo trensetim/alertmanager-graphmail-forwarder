@@ -150,4 +150,7 @@ class GraphMailSender:
                           json=email_data,
                           headers=headers,
                           timeout=self._timeout_seconds)
+
+        # we do not retry here: if we fail, alertmanager gets a non-200 response and will retry the webhook,
+        # which is a more-stable retry behavior than retrying here (eg. due to unknown timeout of alertmanager's webhook client)
         r.raise_for_status()

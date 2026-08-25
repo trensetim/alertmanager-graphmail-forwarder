@@ -6,7 +6,8 @@ from flask import Flask, request, Response
 
 from http_server import static_bearer_auth
 from graph_mail import GraphMailSender
-from alertmanager import Notification, Deduplicator
+from alertmanager import Notification
+from dedup import Deduplicator
 from deadman import Deadman
 from template import TemplateRenderer
 from config import Configuration
@@ -113,19 +114,27 @@ def on_webhook() -> Response:
     # but before the deduplication, since we respect ANY signs of life
     DEADMAN.notify_alertmanager_deadman_checkin()
 
-    if DEDUPLICATOR.is_present(notification.group_key):
-        LOGGER.warning("Duplicate notification received: %s", notification.group_key)
-        return Response("Duplicate notification", status=200, mimetype="text/plain")
+    duplication_check = DEDUPLICATOR.check(notification)
+    if duplication_check.is_duplicate:
+        LOGGER.warning(
+            "Duplicate notification received: hash=%s, group_key=%s, alerts=%d, status=%s, receiver=%s",
+            duplication_check.hash_key,
+            notification.group_key,
+            len(notification.alerts),
+            notification.status.value,
+            notification.receiver
+        )
+        return Response(f"Duplicate notification, hash={duplication_check.hash_key}", status=200, mimetype="text/plain")
 
     alerts_to_send = [a for a in notification.alerts if not DEADMAN.does_alert_match_inhibition_label_filter(a.labels)]
     inhibition_alerts_count = len(notification.alerts) - len(alerts_to_send)
     if inhibition_alerts_count == 1:
-        LOGGER.info("Inhibition filter matched one of %s alerts: skipping it", len(notification.alerts))
+        LOGGER.debug("Inhibition filter matched one of %s alerts: skipping it", len(notification.alerts))
     elif inhibition_alerts_count > 1:
         LOGGER.warning("Inhibition filter matched %d alerts: skipping them all", inhibition_alerts_count)
 
     if len(alerts_to_send) == 0:
-        LOGGER.info("No alerts to send after applying inhibition filter, skipping email (likely all fine, just the inhibition alert firing)")
+        LOGGER.debug("No alerts to send after applying inhibition filter, skipping email (likely all fine, just the inhibition alert firing)")
         # we do not add the group_key to the deduplicator, since we want to pass the deduplication check for the next alertmanager webhook, which may include an additional real alert
         return Response(f"No alerts to send after filtering out alerts matching: {DEADMAN.inhibition_filter_to_string()}", status=200, mimetype="text/plain")
 
@@ -138,9 +147,9 @@ def on_webhook() -> Response:
 
     # partial failure of sending will lead to duplicate emails when appending only here,
     # but we accept that for simplicity
-    DEDUPLICATOR.add(notification.group_key)
+    DEDUPLICATOR.add(notification)
 
-    LOGGER.info("Notification processed: %d alerts sent", len(alerts_to_send))
+    LOGGER.info("Notification processed: %d alerts sent, hash=%s", len(alerts_to_send), duplication_check.hash_key)
     LOGGER.debug("%s", notification)
     return Response(status=200)
 
