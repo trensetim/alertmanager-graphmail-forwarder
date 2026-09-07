@@ -35,6 +35,13 @@ class Alert:
     fingerprint: str
     """fingerprint to identify the alert"""
 
+    alertname: str
+    """Taken from labels (optional, default "[no alert name]")"""
+    summary: str
+    """Taken from annotations (optional, default "[no summary]")"""
+    description: str
+    """Taken from annotations (optional, default "[no description]")"""
+
     def __init__(self,
                  status: Status,
                  labels: dict[str, str],
@@ -50,6 +57,10 @@ class Alert:
         self.ends_at = ends_at
         self.generator_url = generator_url
         self.fingerprint = fingerprint
+
+        self.alertname = labels.get("alertname", "[no alert name]")
+        self.summary = annotations.get("summary", "[no summary]")
+        self.description = annotations.get("description", "[no description]")
 
 @dataclass
 # pylint: disable=R0902 # too few public methods -> dataclass

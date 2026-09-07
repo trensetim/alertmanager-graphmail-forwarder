@@ -4,7 +4,7 @@ import datetime
 from typing import Any
 from jinja2 import Environment, PackageLoader, select_autoescape
 
-from alertmanager import Notification
+from alertmanager import Notification, Status
 
 class TemplateRenderer:
     """
@@ -34,19 +34,15 @@ class TemplateRenderer:
             autoescape=select_autoescape()
         )
 
-    def _render_subject_tags(self, notification: Notification, alert_index: int) -> dict[str, str]:
-        if alert_index < 0 or alert_index >= len(notification.alerts):
-            raise IndexError("alert_index out of range")
-        alert = notification.alerts[alert_index]
-
+    def _render_subject_tags(self, notification: Notification) -> dict[str, str]:
         tags: dict[str, str] = {}
         for tag in self.subject_tags:
-            value = alert.labels.get(tag) or alert.annotations.get(tag)
+            value = notification.common_labels.get(tag) or notification.common_annotations.get(tag)
             if value is not None:
                 tags[tag] = value
         return tags
 
-    def _render_properties(self, notification: Notification, alert_index: int) -> dict[str, Any]:
+    def _render_alert_properties(self, notification: Notification, alert_index: int) -> dict[str, Any]:
         if alert_index < 0 or alert_index >= len(notification.alerts):
             raise IndexError("alert_index out of range")
         alert = notification.alerts[alert_index]
@@ -61,37 +57,51 @@ class TemplateRenderer:
             for key, value in alert.annotations.items()
             if key not in ("summary", "description")
         }
-        subject_tag_values = self._render_subject_tags(notification, alert_index)
 
         return {
-            "notification": notification,
             "alert_index": alert_index,
-            "status": alert.status.value.upper(),
-            "external_url": notification.external_url,
-            "alertname": alert.labels.get("alertname", "[no alert name]"),
-            "summary": alert.annotations.get("summary", "[no summary]"),
-            "description": alert.annotations.get("description", "[no description]"),
+            "status": alert.status.value,
+            "alert": alert,
+            "labels": labels,
+            "annotations": annotations,
+            "alertname": alert.alertname,
+            "summary": alert.summary,
+            "description": alert.description,
             "starts_at": alert.starts_at.isoformat(),
             "ends_at":
                 alert.ends_at.isoformat()
                 if alert.ends_at is not None and alert.ends_at.timestamp() > 1
-                else "ongoing",
+                else None,
             "fingerprint": alert.fingerprint,
-            "labels": labels,
-            "annotations": annotations,
-            "subject_tags": self.subject_tags,
-            "subject_tag_values": subject_tag_values,
         }
 
-    def render_mail_subject(self, notification: Notification, alert_index: int) -> str:
+    def _render_properties(self, notification: Notification) -> dict[str, Any]:
+        subject_tag_values = self._render_subject_tags(notification)
+        common_alertname = notification.common_labels.get("alertname")
+        alerts = [self._render_alert_properties(notification, i) for i in range(len(notification.alerts))]
+
+        return {
+            "notification": notification,
+            "count": len(notification.alerts),
+            "count_firing": len([a for a in notification.alerts if a.status == Status.FIRING]),
+            "count_resolved": len([a for a in notification.alerts if a.status == Status.RESOLVED]),
+            "common_alertname": common_alertname,
+            "external_url": notification.external_url,
+            "subject_tags": self.subject_tags,
+            "subject_tag_values": subject_tag_values,
+            "alerts": alerts,
+        }
+
+    def render_mail_subject(self, notification: Notification) -> str:
         """Render the email subject for a given notification."""
-        properties = self._render_properties(notification, alert_index)
+        properties = self._render_properties(notification)
         template = self._jinja_env.get_template("subject.txt.jinja")
         return template.render(**properties)
 
-    def render_mail_body(self, notification: Notification, alert_index: int) -> str:
+    def render_mail_body(self, notification: Notification, inhibited_alerts_count: int) -> str:
         """Render the email body for a given notification."""
-        properties = self._render_properties(notification, alert_index)
+        properties = self._render_properties(notification)
+        properties["count_inhibited"] = inhibited_alerts_count
         template = self._jinja_env.get_template("body.html.jinja")
         return template.render(**properties)
 

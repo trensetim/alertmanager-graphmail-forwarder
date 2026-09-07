@@ -1,7 +1,27 @@
-[{{ status }}]
+{%- if count_firing > 0 and count_resolved > 0 -%}
+{{count_firing}} FIRING, {{count_resolved}} RESOLVED
+{%- elif count_firing == 1 -%}
+FIRING
+{%- elif count_firing > 1 -%}
+{{count_firing}} FIRING
+{%- elif count_resolved == 1 -%}
+{{count_resolved}} RESOLVED
+{%- elif count_resolved > 1 -%}
+{{count_resolved}} RESOLVED
+{%- else -%}
+{{count_firing}} FIRING, {{count_resolved}} RESOLVED
+{%- endif -%}
+
+:
+
 {%- for i in subject_tag_values -%}
 {{- " " -}}
 [{{- subject_tag_values[i] -}}]
 {%- endfor -%}
 {{ " " }}
-{{- alertname -}}
+
+{%- if count == 1 -%}
+{{- notification.alerts[0].alertname -}}
+{%- elif common_alertname -%}
+{{ common_alertname }}
+{%- endif -%}

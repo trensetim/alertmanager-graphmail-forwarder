@@ -112,22 +112,21 @@ def on_webhook() -> Response:
     DEADMAN.notify_alertmanager_deadman_checkin()
 
     alerts_to_send = [a for a in notification.alerts if not DEADMAN.does_alert_match_inhibition_label_filter(a.labels)]
-    inhibition_alerts_count = len(notification.alerts) - len(alerts_to_send)
-    if inhibition_alerts_count == 1:
+    inhibited_alerts_count = len(notification.alerts) - len(alerts_to_send)
+    if inhibited_alerts_count == 1:
         LOGGER.debug("Inhibition filter matched one of %s alerts: skipping it", len(notification.alerts))
-    elif inhibition_alerts_count > 1:
-        LOGGER.warning("Inhibition filter matched %d alerts: skipping them all", inhibition_alerts_count)
+    elif inhibited_alerts_count > 1:
+        LOGGER.warning("Inhibition filter matched %d alerts: skipping them all", inhibited_alerts_count)
 
     if len(alerts_to_send) == 0:
         LOGGER.debug("No alerts to send after applying inhibition filter, skipping email (likely all fine, just the inhibition alert firing)")
         return Response(f"No alerts to send after filtering out alerts matching: {DEADMAN.inhibition_filter_to_string()}", status=200, mimetype="text/plain")
 
-    for i in range(len(alerts_to_send)):
-        MAIL_SENDER.send(
-            subject=RENDERER.render_mail_subject(notification, alert_index=i),
-            body=RENDERER.render_mail_body(notification, alert_index=i)
-            # to=<use default>
-        )
+    MAIL_SENDER.send(
+        subject=RENDERER.render_mail_subject(notification),
+        body=RENDERER.render_mail_body(notification, inhibited_alerts_count)
+        # to=<use default>
+    )
 
     LOGGER.info("Notification processed: %d alerts sent", len(alerts_to_send))
     LOGGER.debug("%s", notification)

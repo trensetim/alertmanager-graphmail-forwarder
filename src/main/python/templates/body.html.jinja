@@ -1,75 +1,95 @@
 <html>
 <body>
     <style>
-        h2 {
-            color: {{ 'red' if status == 'FIRING' else 'green' }};
+        .firing > h2 {
+            color: red;
+        }
+        .resolved > h2 {
+            color: green;
         }
     </style>
 
     {% from 'email_preheader.makro.jinja' import email_preheader %}
-    {{ email_preheader(summary ~ " (" ~ description ~ ") since " ~ starts_at) | indent(4) }}
+    {{ email_preheader(alerts[0].summary ~ " (" ~ alerts[0].description ~ ") since " ~ alerts[0].starts_at) | indent(4) }}
 
-    <h2>{{ status }}: {{ alertname }}</h2>
+    {% if common_alertname %}
+    <h1>{{ common_alertname }}</h1>
+    {% else %}
+    <h1>{{ count }} Alerts</h1>
+    {% endif %}
 
-    <table>
-    <tbody>
-    <tr>
-        <td>Summary</td>
-        <td>{{ summary }}</td>
-    </tr>
-    <tr>
-        <td>Description</td>
-        <td>{{ description }}</td>
-    </tr>
-    <tr>
-        <td>Starts At</td>
-        <td>{{ starts_at }}</td>
-    </tr>
-    <tr>
-        <td>Ends At</td>
-        <td>{{ ends_at }}</td>
-    </tr>
-    <tr>
-        <td>Fingerprint</td>
-        <td>{{ fingerprint }}</td>
-    </tr>
-    <tr>
-        <td>Labels</td>
-        <td>
-            <ul>
-            {% for label in labels %}
-                <li>
-                    <b>
-                        {{ label }}
-                    </b>
-                    =
-                    {{ labels[label] }}
-                </li>
-            {% endfor %}
-            </ul>
-        </td>
-    </tr>
-    <tr>
-        <td>Annotations</td>
-        <td>
-            <ul>
+    {{ count_firing }} firing,
+    {{ count_resolved }} resolved
+    {%- if count_inhibited > 0 -%}
+    ,
+    {{ count_inhibited }} suppressed by deadman switch
+    {%- endif %}
 
-            {% for a in annotations %}
-                <li>
-                    <b>
-                        {{ a }}
-                    </b>
-                    =
-                    {{ annotations[a] }}
-                </li>
-            {% endfor %}
-            </ul>
-        </td>
-    </tr>
-    </tbody>
-    </table>
+    {% for alert in alerts %}
+    <div class="{{ alert.status|lower }}">
+        <hr>
+        <h2>{{ alert.status|upper }}: {{ alert.alertname }}</h2>
 
-    <hr/>
-    <a href="{{ external_url }}">View in Alertmanager</a>
+        <table>
+        <tbody>
+        <tr>
+            <td>Summary</td>
+            <td>{{ alert.summary }}</td>
+        </tr>
+        <tr>
+            <td>Description</td>
+            <td>{{ alert.description }}</td>
+        </tr>
+        <tr>
+            <td>Starts At</td>
+            <td>{{ alert.starts_at }}</td>
+        </tr>
+        <tr>
+            <td>Ends At</td>
+            <td>{{ alert.ends_at or "ongoing" }}</td>
+        </tr>
+        <tr>
+            <td>Fingerprint</td>
+            <td>{{ alert.fingerprint }}</td>
+        </tr>
+        <tr>
+            <td>Labels</td>
+            <td>
+                <ul>
+                {% for label in alert.labels %}
+                    <li>
+                        <b>
+                            {{ label }}
+                        </b>
+                        =
+                        {{ alert.labels[label] }}
+                    </li>
+                {% endfor %}
+                </ul>
+            </td>
+        </tr>
+        <tr>
+            <td>Annotations</td>
+            <td>
+                <ul>
+
+                {% for annotation in alert.annotations %}
+                    <li>
+                        <b>
+                            {{ annotation }}
+                        </b>
+                        =
+                        {{ alert.annotations[annotation] }}
+                    </li>
+                {% endfor %}
+                </ul>
+            </td>
+        </tr>
+        </tbody>
+        </table>
+
+        <a href="{{ external_url }}">View in Alertmanager</a>
+    </div>
+    {% endfor %}
 </body>
 </html>

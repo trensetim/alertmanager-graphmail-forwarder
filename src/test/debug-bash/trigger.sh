@@ -24,6 +24,23 @@ curl -X POST -v -H "Content-Type: application/json" -d '{
       "endsAt": "0001-01-01T00:00:00Z",
       "generatorURL": "example.com",
       "fingerprint": "abc123"
+    },
+    {
+      "status": "resolved",
+      "labels": {
+        "alertname": "Test2",
+        "instance": "localhost:9090",
+        "job": "prometheus24"
+      },
+      "annotations": {
+        "description": "some description",
+        "abc": "def",
+        "summary": "test alert"
+      },
+      "startsAt": "2018-08-03T09:52:26.739266876+02:00",
+      "endsAt": "0001-01-01T00:00:00Z",
+      "generatorURL": "example.com",
+      "fingerprint": "abc123"
     }
   ],
   "groupLabels": {

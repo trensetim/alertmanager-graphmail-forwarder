@@ -2,5 +2,6 @@
 	"python.analysis.typeCheckingMode": "strict",
     "pylint.args": [
         "--max-line-length=210"
-    ]
+    ],
+    "python-envs.defaultEnvManager": "ms-python.python:venv"
 }
