@@ -76,7 +76,7 @@ def preview_example_body() -> Response:
         }]
     }
     notification = Notification.parse(data)
-    body = RENDERER.render_mail_body(notification, alert_index=0)
+    body = RENDERER.render_mail_body(notification, 0)
     return Response(body, status=200, mimetype="text/html")
 
 @flask.get("/preview/example/forwarder_deadman")
@@ -127,6 +127,8 @@ def on_webhook() -> Response:
         body=RENDERER.render_mail_body(notification, inhibited_alerts_count)
         # to=<use default>
     )
+
+    DEADMAN.notify_mail_sent()
 
     LOGGER.info("Notification processed: %d alerts sent", len(alerts_to_send))
     LOGGER.debug("%s", notification)

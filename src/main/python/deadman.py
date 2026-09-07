@@ -103,6 +103,10 @@ class Deadman:
         self.logger.debug("Alertmanager checked in, updating last checkin timestamp to %s", now)
         self.last_alertmanager_checkin_timestamp = now
 
+    def notify_mail_sent(self, now: datetime.datetime | None = None) -> None:
+        """Notify the deadman switch that the forwarder has sent some email."""
+        self.forwarder_deadman_last_sent = now or datetime.datetime.now()
+
     def is_alertmanager_deadman_expired(self, now: datetime.datetime | None = None) -> bool:
         """Check whether the alertmanager deadman switch has expired."""
         now = now or datetime.datetime.now()
