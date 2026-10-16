@@ -8,6 +8,7 @@ from http_server import static_bearer_auth
 from graph_mail import GraphMailSender
 from alertmanager import Notification
 from deadman import Deadman
+from tls_watcher import TlsCertificateWatcher
 from template import TemplateRenderer
 from config import Configuration
 
@@ -160,6 +161,8 @@ def startup() -> None:
         DEADMAN.dispatch_scheduler(on_forwarder_deadman_due, on_alertmanager_deadman_due, config.deadman_interval)
     else:
         LOGGER.info("Forwarder deadman switch is disabled")
+    if config.server.tls is not None:
+        TlsCertificateWatcher(config.server.tls, logger=LOGGER.getChild("tls_watcher")).start()
 
 startup()
 if __name__ == "__main__":
