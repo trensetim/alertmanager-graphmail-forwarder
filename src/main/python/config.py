@@ -55,6 +55,11 @@ class TlsConfiguration:
     def load_ssl_context(self) -> ssl.SSLContext:
         """
         Loads an SSL context from the TLS configuration.
+        The returned SSL context must & will dynamically reload the certificate contents upon change.
+
+        Impl Note: Dynamic reload hinges on the fact that the runtime is gunicorn with sync workers on CPython 3.14,
+        which build a fresh SSLContext for every accepted connection.
+        This will no longer be true for other worker types or server setups (eg. gevent, tornado and the asgi worker).
         """
         ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
         ssl_context.load_cert_chain(

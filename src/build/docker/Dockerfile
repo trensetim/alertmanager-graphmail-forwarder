@@ -1,8 +1,9 @@
-FROM python:3-alpine
+# see config.py#TlsConfiguration.load_ssl_context before bumping
+FROM python:3.14-alpine
 WORKDIR /app
 COPY --chown=1000:1000 src/build/python/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt && \
-    apk add curl inotify-tools
+    apk add curl
 COPY --chown=1000:1000 src/main/python/ /app
 COPY --chown=1000:1000 src/main/docker/ /app
 STOPSIGNAL SIGTERM

@@ -1,9 +1,9 @@
 #!/bin/bash
 
-# must be run from project root
+cd "$(dirname "${BASH_SOURCE[0]}")/../../.."
 
-IMAGE_NAME="proxyimg"
-docker build -t "$IMAGE_NAME" -f src/build/docker/Dockerfile .
+IMAGE_NAME=${IMAGE_NAME:-agf:local}
+./src/test/debug-bash/build.sh
 
 source .env
 docker run --rm -it -p "$LISTEN_PORT:$LISTEN_PORT" \
